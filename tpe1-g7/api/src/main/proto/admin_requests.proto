@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/empty.proto";
+
+package requests;
+
+option java_package = "ar.edu.itba.pod.grpc.requests";
+option java_multiple_files = true;
+
+service AdminRequestsService{
+    /*
+    Los 3 métodos pedidos:
+      - Rides
+      - Tickets
+      - Slots
+     */
+  rpc AddSlotsRequest(SlotsRequestModel) returns(google.protobuf.Int32Value);
+}
+
+message SlotsRequestModel{
+  int32 day = 1;
+  string ride = 2;
+  int32 capacity = 3;
+}
+
