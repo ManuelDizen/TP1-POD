@@ -1,5 +1,8 @@
 package ar.edu.itba.pod.grpc.client;
 
+import ar.edu.itba.pod.grpc.requests.AdminRequestsServiceGrpc;
+import ar.edu.itba.pod.grpc.requests.SlotsRequestModel;
+import com.google.protobuf.Int32Value;
 import io.grpc.ManagedChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +21,10 @@ public class AdminClient {
         ManagedChannel channel = ConnectionUtils.createChannel();
         String action = ParsingUtils.getSystemProperty(PropertyNames.ACTION).orElseThrow();
         //TODO: NullPointerDereference
+
+        AdminRequestsServiceGrpc.AdminRequestsServiceBlockingStub req =
+                AdminRequestsServiceGrpc.newBlockingStub(channel);
+
         switch (action){
             case "rides":
                 logger.debug("rides...");
@@ -35,11 +42,22 @@ public class AdminClient {
                 int day = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow());
                 String ride = ParsingUtils.getSystemProperty(PropertyNames.RIDE).orElseThrow();
                 int capacity = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.CAPACITY).orElseThrow());
+                SlotsRequestModel model = SlotsRequestModel.newBuilder()
+                        .setDay(day)
+                        .setCapacity(capacity)
+                        .setRide(ride)
+                        .build();
+                Int32Value response = req.addSlotsRequest(model);
+                System.out.println("Volviii " + response);
+                //TODO: Discuss if client side validation or server side is necessary
+
+
 
                 break;
             default:
                 logger.error("Action requested is invalid. Please check action is one of the following options:\n[rides|tickets|slots]");
         }
+
         channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
 
 

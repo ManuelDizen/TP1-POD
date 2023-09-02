@@ -11,8 +11,11 @@ public class ParsingUtils {
     private static Logger logger = LoggerFactory.getLogger(Client.class);
 
     public static Optional<String> getSystemProperty(String name){
+        System.out.printf(name + "\n");
         final String prop = System.getProperty(name);
+        System.out.println("El prop es " + prop);
         if(prop == null){
+            System.out.println("Esto es nulazo");
             logger.error("Error parsing property of name " + name + ". Now exiting");
             return Optional.empty();
         }
