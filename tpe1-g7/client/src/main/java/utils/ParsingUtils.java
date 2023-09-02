@@ -1,9 +1,18 @@
 package utils;
 
 import ar.edu.itba.pod.grpc.client.Client;
+import ar.edu.itba.pod.grpc.requests.PassType;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 public class ParsingUtils {
@@ -36,5 +45,44 @@ public class ParsingUtils {
         return null;
     }
 
+    public static List<String[]> parseCsv(String path){
+        FileReader file;
+        try{
+            file = new FileReader(path);
+        }
+        catch(FileNotFoundException e){
+            throw new RuntimeException(e.getMessage());
+        }
+
+        CSVParser parser;
+        try {
+            parser = new CSVParser(file, CSVFormat.DEFAULT);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        boolean skipFirstLine = true;
+        List<String[]> lines = new ArrayList<>();
+
+        for (CSVRecord record : parser) {
+            if (skipFirstLine) {
+                skipFirstLine = false;
+                continue;
+            }
+            String[] tokenizedArray = record.get(0).split(";");
+            lines.add(tokenizedArray);
+        }
+        return lines;
+    }
+
+    public static PassType getFromString(String name) {
+        System.out.println("Entro a getFromString con: " + "-"+name+"-\n");
+        return switch (name) {
+            case "UNLIMITED" -> PassType.UNLIMITED;
+            case "HALFDAY" -> PassType.HALF_DAY;
+            case "THREE" -> PassType.THREE;
+            default -> null;
+        };
+    }
 
 }

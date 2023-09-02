@@ -122,6 +122,13 @@
       <scope>test</scope>
     </dependency>
     <!-- END: TEST -->
+
+    <!-- Additional dependencies -->
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-csv</artifactId>
+      <version>1.8</version> <!-- Use the latest version available -->
+    </dependency>
   </dependencies>
   <build>
     <pluginManagement>

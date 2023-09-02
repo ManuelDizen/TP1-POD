@@ -1,15 +1,22 @@
 package ar.edu.itba.pod.grpc.client;
 
 import ar.edu.itba.pod.grpc.requests.AdminRequestsServiceGrpc;
+import ar.edu.itba.pod.grpc.requests.PassType;
 import ar.edu.itba.pod.grpc.requests.SlotsRequestModel;
+import ar.edu.itba.pod.grpc.requests.TicketsRequestModel;
 import com.google.protobuf.Int32Value;
 import io.grpc.ManagedChannel;
+import jdk.jshell.spi.ExecutionControl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.ConnectionUtils;
 import utils.ParsingUtils;
 import utils.PropertyNames;
 
+import java.sql.Array;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class AdminClient {
@@ -28,9 +35,34 @@ public class AdminClient {
         switch (action){
             case "rides":
                 logger.debug("rides...");
+                //
                 break;
             case "tickets":
+                int added = 0;
                 logger.debug("tickets...");
+                List<String[]> entries = ParsingUtils.parseCsv(ParsingUtils.getSystemProperty(PropertyNames.IN_PATH).orElseThrow());
+                for(String[] entry : entries) System.out.println(Arrays.toString(entry));
+                for(String[] entry : entries){
+                    String id = entry[0];
+                    PassType type = ParsingUtils.getFromString(entry[1]);
+                    if(type == null) {
+                        System.out.println(entry[1] + " esta es la entry1. Fijate\n");
+                        throw new RuntimeException("Error in type parameter. Please check csv file.\n");
+                    }
+                    int day = Integer.parseInt(entry[2]);
+                    TicketsRequestModel model = TicketsRequestModel.newBuilder()
+                            .setDay(day)
+                            .setType(type)
+                            .setId(id)
+                            .build();
+                    Int32Value response = req.addTicketsRequest(model);
+                    System.out.println("Volviii (tikcets) " + response);
+                    added += response.getValue();
+                }
+                if(added != entries.size()){
+                    System.out.println("Cannot add " + (entries.size() - added) + " passes");
+                }
+                System.out.println(added + " passes added");
                 break;
             case "slots":
                 /*TODO: Esto me lo anoto para acordarme después. Falla si:

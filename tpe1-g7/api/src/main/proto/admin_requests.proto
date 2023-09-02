@@ -16,8 +16,11 @@ service AdminRequestsService{
       - Slots
      */
 
-  // Entrada: SlotsRequestModel, Salida:
+  // Entrada: SlotsRequestModel, Salida: SLots agregados
   rpc AddSlotsRequest(SlotsRequestModel) returns(google.protobuf.Int32Value);
+
+  // Entrada: TicketRequestModel, Salida: Cantidad agregada
+  rpc AddTicketsRequest(TicketsRequestModel) returns(google.protobuf.Int32Value);
 }
 
 message SlotsRequestModel{
@@ -26,3 +29,15 @@ message SlotsRequestModel{
   int32 capacity = 3;
 }
 
+message TicketsRequestModel{
+  string id = 1;
+  PassType type = 2;
+  int32 day = 3;
+}
+
+enum PassType{
+  UNKNOWN = 0;
+  UNLIMITED = 1;
+  THREE = 2;
+  HALF_DAY = 3;
+}
