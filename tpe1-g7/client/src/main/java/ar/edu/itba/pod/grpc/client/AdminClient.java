@@ -1,9 +1,6 @@
 package ar.edu.itba.pod.grpc.client;
 
-import ar.edu.itba.pod.grpc.requests.AdminRequestsServiceGrpc;
-import ar.edu.itba.pod.grpc.requests.PassType;
-import ar.edu.itba.pod.grpc.requests.SlotsRequestModel;
-import ar.edu.itba.pod.grpc.requests.TicketsRequestModel;
+import ar.edu.itba.pod.grpc.requests.*;
 import com.google.protobuf.Int32Value;
 import io.grpc.ManagedChannel;
 import jdk.jshell.spi.ExecutionControl;
@@ -20,7 +17,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class AdminClient {
-    private static Logger logger = LoggerFactory.getLogger(Client.class);
+    private static Logger logger = LoggerFactory.getLogger(AdminClient.class);
 
     public static void main(String[] args) throws InterruptedException {
         logger.info("AdminClient starting...");
@@ -31,22 +28,35 @@ public class AdminClient {
 
         AdminRequestsServiceGrpc.AdminRequestsServiceBlockingStub req =
                 AdminRequestsServiceGrpc.newBlockingStub(channel);
-
+        List<String[]> entries;
+        int added = 0;
         switch (action){
             case "rides":
                 logger.debug("rides...");
-                //
+                entries = ParsingUtils.parseCsv(ParsingUtils.getSystemProperty(PropertyNames.IN_PATH).orElseThrow());
+                for(String[] entry : entries){
+                    String name = entry[0];
+                    String opening = entry[1];
+                    String closing = entry[2];
+                    int minsPerSlot = Integer.parseInt(entry[3]);
+                    RidesRequestModel model = RidesRequestModel.newBuilder()
+                            .setName(name)
+                            .setOpening(opening)
+                            .setClosing(closing)
+                            .setMinsPerSlot(minsPerSlot)
+                            .build();
+                    Int32Value response = req.addRidesRequest(model);
+                    System.out.printf("Volviii (slots) " + response);
+                    added += response.getValue();
+                }
                 break;
             case "tickets":
-                int added = 0;
                 logger.debug("tickets...");
-                List<String[]> entries = ParsingUtils.parseCsv(ParsingUtils.getSystemProperty(PropertyNames.IN_PATH).orElseThrow());
-                for(String[] entry : entries) System.out.println(Arrays.toString(entry));
+                entries = ParsingUtils.parseCsv(ParsingUtils.getSystemProperty(PropertyNames.IN_PATH).orElseThrow());
                 for(String[] entry : entries){
                     String id = entry[0];
                     PassType type = ParsingUtils.getFromString(entry[1]);
                     if(type == null) {
-                        System.out.println(entry[1] + " esta es la entry1. Fijate\n");
                         throw new RuntimeException("Error in type parameter. Please check csv file.\n");
                     }
                     int day = Integer.parseInt(entry[2]);
