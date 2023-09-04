@@ -65,9 +65,14 @@ public class AdminClient {
                             .setType(type)
                             .setId(id)
                             .build();
+                    try{
                     Int32Value response = req.addTicketsRequest(model);
                     System.out.println("Volviii (tikcets) " + response);
                     added += response.getValue();
+                    }
+                    catch(Exception e){
+                        System.out.println("Could not add pass: " + entry[0] + ":" + entry[1] + ":" + entry[2]);
+                    }
                 }
                 if(added != entries.size()){
                     System.out.println("Cannot add " + (entries.size() - added) + " passes");

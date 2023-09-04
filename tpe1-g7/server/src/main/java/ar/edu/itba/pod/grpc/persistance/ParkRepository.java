@@ -40,9 +40,9 @@ public class ParkRepository {
         return true;
     }
 
-    public synchronized boolean addRide(Attraction att){
+    public synchronized Attraction addRide(Attraction att){
         attractions.add(att);
-        return true;
+        return att;
     }
 
     public synchronized boolean addPass(AttractionPass pass){

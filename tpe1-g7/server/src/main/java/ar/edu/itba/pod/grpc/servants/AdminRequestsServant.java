@@ -106,16 +106,14 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
             returnOnError("Invalid minutes per slot.", responseObserver);
         }
 
-        boolean req = repository.addRide(new Attraction(name, opening, closing, minsPerSlot));
-        if(req){
+        Attraction att = repository.addRide(new Attraction(name, opening, closing, minsPerSlot));
+        if(att != null){
             responseObserver.onNext(Int32Value.of(ReturnValues.SUCCESSFUL_PETITION.ordinal()));
             responseObserver.onCompleted();
         }
         else{
             returnOnError("Unknown error.", responseObserver);
         }
-
-
     }
 
 }
