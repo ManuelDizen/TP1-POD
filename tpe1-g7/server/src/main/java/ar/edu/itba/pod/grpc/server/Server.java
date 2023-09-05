@@ -1,6 +1,7 @@
 package ar.edu.itba.pod.grpc.server;
 
 import ar.edu.itba.pod.grpc.servants.AdminRequestsServant;
+import ar.edu.itba.pod.grpc.servants.BookingRequestsServant;
 import io.grpc.ServerBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +17,7 @@ public class Server {
         int port = 50051;
         io.grpc.Server server = ServerBuilder.forPort(port)
                 .addService(new AdminRequestsServant())
+                .addService(new BookingRequestsServant())
                 .build();
         server.start();
         logger.info("Server started, listening on " + port);

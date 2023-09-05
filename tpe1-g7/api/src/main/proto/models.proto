@@ -1,0 +1,36 @@
+/* Admin requests */
+syntax = "proto3";
+
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/empty.proto";
+
+package requests;
+
+option java_package = "ar.edu.itba.pod.grpc.requests";
+option java_multiple_files = true;
+
+message SlotsRequestModel{
+  int32 day = 1;
+  string ride = 2;
+  int32 capacity = 3;
+}
+
+message TicketsRequestModel{
+  string id = 1;
+  PassType type = 2;
+  int32 day = 3;
+}
+
+message RidesRequestModel{
+  string name = 1;
+  string opening = 2;
+  string closing = 3;
+  int32 minsPerSlot = 4;
+}
+
+enum PassType{
+  UNKNOWN = 0;
+  UNLIMITED = 1;
+  THREE = 2;
+  HALF_DAY = 3;
+}
