@@ -68,9 +68,13 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
         }
 
         if(!repository.attractionHasCapacityAlready(attraction, day)) {
-            repository.addReservation(new Reservation(attraction, day, id, slot, ReservationStatus.PENDING));
-            responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.PENDING).build());
-            responseObserver.onCompleted();
+            if(repository.addReservation(new Reservation(attraction, day, id, slot, ReservationStatus.PENDING))) {
+                responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.PENDING).build());
+                responseObserver.onCompleted();
+            }
+            errMsg = "Unknown error";
+            logger.error(errMsg);
+            responseObserver.onError(Status.INTERNAL.withDescription(errMsg).asRuntimeException());
         }
 
         int capacity = repository.getRemainingCapacity(attraction, day, slot);
@@ -81,9 +85,15 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
             responseObserver.onError(Status.PERMISSION_DENIED.withDescription(errMsg).asRuntimeException());
         }
 
-        repository.addReservation(new Reservation(attraction, day, id, slot, ReservationStatus.CONFIRMED));
-        responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.CONFIRMED).build());
-        responseObserver.onCompleted();
+        if(repository.addReservation(new Reservation(attraction, day, id, slot, ReservationStatus.CONFIRMED))) {
+            responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.CONFIRMED).build());
+            responseObserver.onCompleted();
+        }
+
+        errMsg = "Unknown error";
+        logger.error(errMsg);
+        responseObserver.onError(Status.INTERNAL.withDescription(errMsg).asRuntimeException());
+
 
     }
 

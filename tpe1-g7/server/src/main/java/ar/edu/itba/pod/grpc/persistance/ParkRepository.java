@@ -10,6 +10,9 @@ import ar.edu.itba.pod.grpc.requests.SlotsReplyModel;
 import java.time.LocalTime;
 import java.util.*;
 
+import static ar.edu.itba.pod.grpc.models.ReservationStatus.CONFIRMED;
+import static ar.edu.itba.pod.grpc.models.ReservationStatus.PENDING;
+
 public class ParkRepository {
     private final List<Attraction> attractions = new ArrayList<>();
     private final List<AttractionPass> passes = new ArrayList<>();
@@ -47,6 +50,7 @@ public class ParkRepository {
 
     public synchronized Attraction addRide(Attraction att){
         attractions.add(att);
+        reservations.put(att.getName(), new ArrayList<>());
         return att;
     }
 
@@ -71,16 +75,24 @@ public class ParkRepository {
 
     public boolean addReservation(Reservation reservation) {
 
-        List<Reservation> reservationsForAttraction = reservations.get(reservation.getAttractionName());
-
-        if(reservationsForAttraction.contains(reservation)) {
-            return false;
+        if(reservation.getStatus() == PENDING) {
+            List<Reservation> pendingReservations = reservations.get(reservation.getAttractionName());
+            if(pendingReservations.contains(reservation)) {
+                return false;
+            }
+            pendingReservations.add(reservation);
+            reservations.put(reservation.getAttractionName(), pendingReservations);
+        } else if(reservation.getStatus() == CONFIRMED) {
+            //me busco el mapa Map<Horario, Capacidad> de la atracción para ese día
+            Map<LocalTime, Integer> slots = repository.getAttractionByName(reservation.getAttractionName()).getSpaceAvailable().get(reservation.getDay());
+            Integer capacity = slots.get(reservation.getSlot());
+            if(capacity < 0) {
+                return false;
+            }
+            capacity--;
+            slots.put(reservation.getSlot(), capacity);
         }
 
-        reservationsForAttraction.add(reservation);
-        reservations.put(reservation.getAttractionName(), reservationsForAttraction);
-
-        //TODO: Bajar la capacidad del slot en 1
         return true;
 
     }
@@ -90,7 +102,7 @@ public class ParkRepository {
 
         //Method called when an attraction receives a capacity so that it confirms/denies/relocates reservations
         List<Reservation> attReservs = reservations.get(name).stream()
-                .filter(r -> r.getDay() == day && r.getStatus() == ReservationStatus.PENDING)
+                .filter(r -> r.getDay() == day && r.getStatus() == PENDING)
                 .toList();
         attReservs.sort((new Comparator<Reservation>() {
             @Override
@@ -126,7 +138,7 @@ public class ParkRepository {
                     }
                 }
                 if(firstAvailable != null){
-                    r.setStatus(ReservationStatus.CONFIRMED);
+                    r.setStatus(PENDING);
                     r.setSlot(firstAvailable);
                     capacities.put(firstAvailable, capacities.get(firstAvailable)-1);
                     relocated++;
