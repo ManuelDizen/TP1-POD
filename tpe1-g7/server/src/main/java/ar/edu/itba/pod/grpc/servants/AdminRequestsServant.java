@@ -89,7 +89,7 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
         }
     }
 
-    /*@Override
+    @Override
     public void addRidesRequest(RidesRequestModel request,
                                 StreamObserver<Int32Value> responseObserver){
         System.out.println("Entre a addRidesRequest");
@@ -116,6 +116,6 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
         else{
             returnOnError("Unknown error.", responseObserver);
         }
-    }*/
+    }
 
 }

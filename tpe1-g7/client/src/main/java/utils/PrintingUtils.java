@@ -12,4 +12,22 @@ public class PrintingUtils {
         if(model.getCancelled() != 0)
             System.out.println(model.getCancelled() + " bookings cancelled.");
     }
+
+    public static void printRidesReply(int expected, int actual){
+        if(actual != expected){
+            System.out.println("Cannot add " + (expected-actual) + " attractions.");
+        }
+        if(actual != 0){
+            System.out.println(actual + " attractions added.");
+        }
+    }
+
+    public static void printTicketsReply(int expected, int actual){
+        if(actual != expected){
+            System.out.println("Cannot add " + (expected-actual) + " passes.");
+        }
+        if(actual != 0){
+            System.out.println(actual + " passes added.");
+        }
+    }
 }

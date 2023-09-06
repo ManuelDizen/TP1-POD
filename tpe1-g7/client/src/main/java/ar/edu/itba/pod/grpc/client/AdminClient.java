@@ -50,6 +50,7 @@ public class AdminClient {
                     System.out.printf("Volviii (slots) " + response);
                     added += response.getValue();
                 }
+                PrintingUtils.printRidesReply(entries.size(), added);
                 break;
             case "tickets":
                 logger.debug("tickets...");
@@ -66,19 +67,11 @@ public class AdminClient {
                             .setType(type)
                             .setId(id)
                             .build();
-                    try{
                     Int32Value response = req.addTicketsRequest(model);
                     System.out.println("Volviii (tikcets) " + response);
                     added += response.getValue();
-                    }
-                    catch(Exception e){
-                        System.out.println("Could not add pass: " + entry[0] + ":" + entry[1] + ":" + entry[2]);
-                    }
                 }
-                if(added != entries.size()){
-                    System.out.println("Cannot add " + (entries.size() - added) + " passes");
-                }
-                System.out.println(added + " passes added");
+                PrintingUtils.printTicketsReply(entries.size(), added);
                 break;
             case "slots":
                 /*TODO: Esto me lo anoto para acordarme después. Falla si:
