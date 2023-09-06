@@ -35,9 +35,20 @@ message BookRequestModel {
   string id = 4;
 }
 
+message ReservationState {
+  ResStatus status = 1;
+}
+
 enum PassType{
   UNKNOWN = 0;
   UNLIMITED = 1;
   THREE = 2;
   HALF_DAY = 3;
+}
+
+enum ResStatus {
+    CONFIRMED = 0;
+    PENDING = 1;
+    CANCELLED = 2;
+    FAILED = 3;
 }

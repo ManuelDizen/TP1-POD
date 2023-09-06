@@ -8,5 +8,9 @@ public class PropertyNames {
     public static String DAY = "day";
     public static String CAPACITY = "capacity";
 
+    public static String VISITOR = "visitor";
+
+    public static String SLOT = "slot";
+
 
 }

@@ -4,11 +4,9 @@ import ar.edu.itba.pod.grpc.persistance.Attraction;
 import ar.edu.itba.pod.grpc.persistance.ParkRepository;
 import ar.edu.itba.pod.grpc.persistance.Reservation;
 import ar.edu.itba.pod.grpc.persistance.ReservationStatus;
-import ar.edu.itba.pod.grpc.requests.BookRequestModel;
-import ar.edu.itba.pod.grpc.requests.BookingRequestsServiceGrpc;
-import ar.edu.itba.pod.grpc.requests.RidesRequestModel;
+import ar.edu.itba.pod.grpc.requests.*;
 import com.google.protobuf.Empty;
-import com.google.protobuf.Int32Value;
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,16 +42,54 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
     }
 
     @Override
-    public void BookingRequest(BookRequestModel request, StreamObserver<Int32Value> responseObserver) {
+    public void BookingRequest(BookRequestModel request, StreamObserver<ReservationState> responseObserver) {
 
+        String errMsg;
         int day = request.getDay();
         UUID id = UUID.fromString(request.getId());
         String attraction = request.getName();
         LocalTime slot = LocalTime.parse(request.getTime());
 
-        repository.addReservation(new Reservation(attraction, day, id, slot, ReservationStatus.PENDING));
+        if(day < 1 || day > 365){
+            errMsg = "Day is invalid";
+            logger.error(errMsg);
+            responseObserver.onError(Status.INTERNAL.withDescription(errMsg).asRuntimeException());
+        }
+
+        if(!repository.attractionExists(attraction)) {
+            errMsg = "Ride not found";
+            logger.error(errMsg);
+            responseObserver.onError(Status.NOT_FOUND.withDescription(errMsg).asRuntimeException());
+        }
+
+        if(!repository.visitorHasPass(id, day) || !repository.visitorCanVisit(id, day, slot)) {
+            errMsg = "Invalid pass";
+            logger.error(errMsg);
+            responseObserver.onError(Status.PERMISSION_DENIED.withDescription(errMsg).asRuntimeException());
+        }
+
+        if(!repository.attractionHasCapacityAlready(attraction, day)) {
+            repository.addReservation(new Reservation(attraction, day, id, slot, ReservationStatus.PENDING));
+            responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.PENDING).build());
+            responseObserver.onCompleted();
+        }
+
+        int capacity = repository.getRemainingCapacity(attraction, day, slot);
+
+        if(capacity <= 0) {
+            errMsg = "Slot is full";
+            logger.error(errMsg);
+            responseObserver.onError(Status.PERMISSION_DENIED.withDescription(errMsg).asRuntimeException());
+        }
+
+        repository.addReservation(new Reservation(attraction, day, id, slot, ReservationStatus.CONFIRMED));
+        responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.CONFIRMED).build());
+        responseObserver.onCompleted();
 
     }
+
+
+
 
 
 
