@@ -4,10 +4,10 @@
   <parent>
     <artifactId>tpe1-g7-parent</artifactId>
     <groupId>ar.edu.itba.pod.grpc</groupId>
-    <version>2023.1Q</version>
+    <version>2023.2Q</version>
   </parent>
   <artifactId>tpe1-g7-client</artifactId>
-  <version>2023.1Q</version>
+  <version>2023.2Q</version>
   <name>tpe1-g7-client</name>
   <dependencies>
     <dependency>
