@@ -28,6 +28,13 @@ message RidesRequestModel{
   int32 minsPerSlot = 4;
 }
 
+message BookRequestModel {
+  string name = 1;
+  int32 day = 2;
+  string time = 3;
+  string id = 4;
+}
+
 enum PassType{
   UNKNOWN = 0;
   UNLIMITED = 1;

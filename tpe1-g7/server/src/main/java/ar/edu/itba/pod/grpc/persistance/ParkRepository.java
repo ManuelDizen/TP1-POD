@@ -60,4 +60,24 @@ public class ParkRepository {
         return passes.stream().anyMatch(a -> a.getVisitor().equals(id) && a.getDay()==day);
     }
 
+    public List<Attraction> getAttractions() {
+        return attractions;
+    }
+
+    public boolean addReservation(Reservation reservation) {
+
+        List<Reservation> reservationsForAttraction = reservations.get(reservation.getAttractionName());
+
+        if(reservationsForAttraction.contains(reservation)) {
+            return false;
+        }
+
+        reservationsForAttraction.add(reservation);
+        reservations.put(reservation.getAttractionName(), reservationsForAttraction);
+        return true;
+
+    }
+
+
+
 }

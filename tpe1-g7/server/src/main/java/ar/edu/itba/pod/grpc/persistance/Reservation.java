@@ -2,6 +2,7 @@ package ar.edu.itba.pod.grpc.persistance;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Objects;
 import java.util.UUID;
 
 public class Reservation {
@@ -48,5 +49,18 @@ public class Reservation {
 
     public void setStatus(ReservationStatus status) {
         this.status = status;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Reservation that = (Reservation) o;
+        return day == that.day && attractionName.equals(that.attractionName) && visitorId.equals(that.visitorId) && slot.equals(that.slot);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(attractionName, day, visitorId, slot);
     }
 }

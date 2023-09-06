@@ -22,12 +22,12 @@ public class Attraction {
         return name;
     }
 
-    public LocalTime getOpening() {
-        return opening;
+    public String getOpening() {
+        return String.valueOf(opening);
     }
 
-    public LocalTime getClosing() {
-        return closing;
+    public String getClosing() {
+        return String.valueOf(closing);
     }
 
     public int getMinsPerSlot() {

@@ -9,10 +9,32 @@ public class AttractionPass {
     private final PassType type;
     private final int day;
 
+    private int remaining;
+
     public AttractionPass(UUID visitor, PassType type, int day) {
         this.visitor = visitor;
         this.type = type;
         this.day = day;
+        this.setRemaining();
+    }
+
+    public void setRemaining() {
+        switch (type) {
+            case UNLIMITED, HALF_DAY:
+                remaining = -1;
+                break;
+            case THREE:
+                remaining = 3;
+                break;
+        }
+    }
+
+    public void rideConsumption() {
+        this.remaining--;
+    }
+
+    public int getRemaining() {
+        return remaining;
     }
 
     public UUID getVisitor() {
@@ -26,4 +48,5 @@ public class AttractionPass {
     public int getDay() {
         return day;
     }
+
 }
