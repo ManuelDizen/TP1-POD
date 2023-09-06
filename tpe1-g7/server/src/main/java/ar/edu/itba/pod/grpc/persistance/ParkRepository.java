@@ -85,10 +85,6 @@ public class ParkRepository {
 
     }
 
-    public boolean visitorCanVisit(UUID id, int day, LocalTime slot) {
-
-        Optional<AttractionPass> pass = passes.stream().filter(a -> a.getVisitor().equals(id) && a.getDay() == day).findFirst();
-
     private SlotsReplyModel updateReservations(String name, int day, int capacity){
         int confirmed = 0, cancelled = 0, relocated = 0;
 
@@ -148,6 +144,10 @@ public class ParkRepository {
                 .setRelocated(relocated)
                 .build();
     }
+
+    public boolean visitorCanVisit(UUID id, int day, LocalTime slot) {
+
+        Optional<AttractionPass> pass = passes.stream().filter(a -> a.getVisitor().equals(id) && a.getDay() == day).findFirst();
 
         if(pass.isEmpty())
             return false;

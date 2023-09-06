@@ -4,9 +4,7 @@ import ar.edu.itba.pod.grpc.models.Attraction;
 import ar.edu.itba.pod.grpc.persistance.ParkRepository;
 import ar.edu.itba.pod.grpc.models.Reservation;
 import ar.edu.itba.pod.grpc.models.ReservationStatus;
-import ar.edu.itba.pod.grpc.requests.BookRequestModel;
-import ar.edu.itba.pod.grpc.requests.BookingRequestsServiceGrpc;
-import ar.edu.itba.pod.grpc.requests.RidesRequestModel;
+import ar.edu.itba.pod.grpc.requests.*;
 import com.google.protobuf.Empty;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
@@ -44,8 +42,7 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
     }
 
     @Override
-    public void BookingRequest(BookRequestModel request, StreamObserver<ReservationState> responseObserver) {
-
+    public void bookingRequest(BookRequestModel request, StreamObserver<ReservationState> responseObserver) {
         String errMsg;
         int day = request.getDay();
         UUID id = UUID.fromString(request.getId());
