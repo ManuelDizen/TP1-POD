@@ -159,7 +159,8 @@ public class ParkRepository {
 
     public boolean visitorCanVisit(UUID id, int day, LocalTime slot) {
 
-        Optional<AttractionPass> pass = passes.stream().filter(a -> a.getVisitor().equals(id) && a.getDay() == day).findFirst();
+        Optional<AttractionPass> pass = passes.stream().filter(a -> a.getVisitor().equals(id) && a.getDay() == day)
+                .findFirst();
 
         if(pass.isEmpty())
             return false;
@@ -176,9 +177,7 @@ public class ParkRepository {
                     return false;
                 break;
         }
-
         return true;
-
     }
 
     public int getRemainingCapacity(String name, int day, LocalTime slot) {
