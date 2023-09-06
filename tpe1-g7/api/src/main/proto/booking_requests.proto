@@ -23,6 +23,6 @@ service BookingRequestsService{
 
   rpc GetAttractionsRequest(google.protobuf.Empty) returns(stream RidesRequestModel);
 
-  rpc BookingRequest(BookRequestModel) returns (google.protobuf.Int32Value);
+  rpc BookingRequest(BookRequestModel) returns (ReservationState);
 
 }

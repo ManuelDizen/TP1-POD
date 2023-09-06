@@ -1,5 +1,6 @@
 package ar.edu.itba.pod.grpc.persistance;
 
+import ar.edu.itba.pod.grpc.requests.PassType;
 import ar.edu.itba.pod.grpc.models.Attraction;
 import ar.edu.itba.pod.grpc.models.AttractionPass;
 import ar.edu.itba.pod.grpc.models.Reservation;
@@ -78,11 +79,15 @@ public class ParkRepository {
 
         reservationsForAttraction.add(reservation);
         reservations.put(reservation.getAttractionName(), reservationsForAttraction);
+
+        //TODO: Bajar la capacidad del slot en 1
         return true;
 
     }
 
+    public boolean visitorCanVisit(UUID id, int day, LocalTime slot) {
 
+        Optional<AttractionPass> pass = passes.stream().filter(a -> a.getVisitor().equals(id) && a.getDay() == day).findFirst();
 
     private SlotsReplyModel updateReservations(String name, int day, int capacity){
         int confirmed = 0, cancelled = 0, relocated = 0;
@@ -143,5 +148,32 @@ public class ParkRepository {
                 .setRelocated(relocated)
                 .build();
     }
+
+        if(pass.isEmpty())
+            return false;
+
+        PassType type = pass.get().getType();
+
+        switch (type) {
+            case THREE:
+                if(pass.get().getRemaining() <= 0)
+                    return false;
+                break;
+            case HALF_DAY:
+                if(slot.isAfter(LocalTime.of(14, 0)))
+                    return false;
+                break;
+        }
+
+        return true;
+
+    }
+
+    public int getRemainingCapacity(String name, int day, LocalTime slot) {
+        //TODO!!
+        return 0;
+    }
+
+
 
 }
