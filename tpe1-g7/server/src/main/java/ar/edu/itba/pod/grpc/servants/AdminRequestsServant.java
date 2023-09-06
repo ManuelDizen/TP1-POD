@@ -1,9 +1,9 @@
 package ar.edu.itba.pod.grpc.servants;
 
-import ar.edu.itba.pod.grpc.persistance.Attraction;
-import ar.edu.itba.pod.grpc.persistance.AttractionPass;
+import ar.edu.itba.pod.grpc.models.Attraction;
+import ar.edu.itba.pod.grpc.models.AttractionPass;
 import ar.edu.itba.pod.grpc.persistance.ParkRepository;
-import ar.edu.itba.pod.grpc.persistance.ReturnValues;
+import ar.edu.itba.pod.grpc.models.ReturnValues;
 import ar.edu.itba.pod.grpc.requests.*;
 import com.google.protobuf.Int32Value;
 import io.grpc.Status;
@@ -12,9 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.List;
 import java.util.UUID;
 
 public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequestsServiceImplBase{
@@ -23,7 +21,7 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
     private final ParkRepository repository = ParkRepository.getRepository();
     @Override
     public void addSlotsRequest(SlotsRequestModel request,
-                                StreamObserver<Int32Value> responseObserver){
+                                StreamObserver<SlotsReplyModel> responseObserver){
         System.out.println("Hola llegue a addSlotsRequest!!!\n");
         int day = request.getDay();
         int capacity = request.getCapacity();
@@ -37,26 +35,30 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
         */
 
         if(day < 1 || day > 365){
-            returnOnError("Invalid day: " + day + ".", responseObserver);
+            responseObserver.onError(Status.INTERNAL.withDescription("Unknown error").asRuntimeException());
+
+            //returnOnError("Invalid day: " + day + ".", responseObserver);
         }
         if(!repository.attractionExists(name)){
-            returnOnError("Invalid attraction: " + name + ".", responseObserver);
+            responseObserver.onError(Status.INTERNAL.withDescription("Unknown error").asRuntimeException());
+
+            //returnOnError("Invalid attraction: " + name + ".", responseObserver);
         }
         if(capacity < 0 || repository.attractionHasCapacityAlready(name, day)){
-            returnOnError("Attraction " + name + " already has capacity for this day.", responseObserver);
+            responseObserver.onError(Status.INTERNAL.withDescription("Unknown error").asRuntimeException());
+            //TODO: Ver como lidiar con esto
+            //returnOnError("Attraction " + name + " already has capacity for this day.", responseObserver);
         }
 
-        boolean req = repository.addSlots(name, day, capacity);
+        SlotsReplyModel reply = repository.addSlots(name, day, capacity);
 
-        if(req){
-            responseObserver.onNext(Int32Value.of(ReturnValues.SUCCESSFUL_PETITION.ordinal()));
+        if(reply != null){
+            responseObserver.onNext(reply);
             responseObserver.onCompleted();
         }
         else{
-            returnOnError("Unknown error.", responseObserver);
+            responseObserver.onError(Status.INTERNAL.withDescription("Unknown error").asRuntimeException());
         }
-
-        // addSlot(day, capacity, name);
     }
 
     private void returnOnError(String errMsg, StreamObserver<Int32Value> observer){
@@ -87,7 +89,7 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
         }
     }
 
-    @Override
+    /*@Override
     public void addRidesRequest(RidesRequestModel request,
                                 StreamObserver<Int32Value> responseObserver){
         System.out.println("Entre a addRidesRequest");
@@ -114,6 +116,6 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
         else{
             returnOnError("Unknown error.", responseObserver);
         }
-    }
+    }*/
 
 }

@@ -1,4 +1,4 @@
-package ar.edu.itba.pod.grpc.persistance;
+package ar.edu.itba.pod.grpc.models;
 
 public enum ReservationStatus {
     CONFIRMED,

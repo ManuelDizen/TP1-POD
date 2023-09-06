@@ -15,6 +15,12 @@ message SlotsRequestModel{
   int32 capacity = 3;
 }
 
+message SlotsReplyModel{
+  int32 confirmed = 1;
+  int32 relocated = 2;
+  int32 cancelled = 3;
+}
+
 message TicketsRequestModel{
   string id = 1;
   PassType type = 2;

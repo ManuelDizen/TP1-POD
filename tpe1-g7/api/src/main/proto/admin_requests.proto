@@ -21,7 +21,7 @@ service AdminRequestsService{
   rpc AddRidesRequest(RidesRequestModel) returns(google.protobuf.Int32Value);
 
   // Entrada: SlotsRequestModel, Salida: SLots agregados
-  rpc AddSlotsRequest(SlotsRequestModel) returns(google.protobuf.Int32Value);
+  rpc AddSlotsRequest(SlotsRequestModel) returns(SlotsReplyModel);
 
   // Entrada: TicketRequestModel, Salida: Cantidad agregada
   rpc AddTicketsRequest(TicketsRequestModel) returns(google.protobuf.Int32Value);

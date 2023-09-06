@@ -1,9 +1,9 @@
 package ar.edu.itba.pod.grpc.servants;
 
-import ar.edu.itba.pod.grpc.persistance.Attraction;
+import ar.edu.itba.pod.grpc.models.Attraction;
 import ar.edu.itba.pod.grpc.persistance.ParkRepository;
-import ar.edu.itba.pod.grpc.persistance.Reservation;
-import ar.edu.itba.pod.grpc.persistance.ReservationStatus;
+import ar.edu.itba.pod.grpc.models.Reservation;
+import ar.edu.itba.pod.grpc.models.ReservationStatus;
 import ar.edu.itba.pod.grpc.requests.BookRequestModel;
 import ar.edu.itba.pod.grpc.requests.BookingRequestsServiceGrpc;
 import ar.edu.itba.pod.grpc.requests.RidesRequestModel;
@@ -43,7 +43,7 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
 
     }
 
-    @Override
+    /*@Override
     public void BookingRequest(BookRequestModel request, StreamObserver<Int32Value> responseObserver) {
 
         int day = request.getDay();
@@ -53,7 +53,7 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
 
         repository.addReservation(new Reservation(attraction, day, id, slot, ReservationStatus.PENDING));
 
-    }
+    }*/
 
 
 

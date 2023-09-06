@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.ConnectionUtils;
 import utils.ParsingUtils;
+import utils.PrintingUtils;
 import utils.PropertyNames;
 
 import java.sql.Array;
@@ -94,12 +95,10 @@ public class AdminClient {
                         .setCapacity(capacity)
                         .setRide(ride)
                         .build();
-                Int32Value response = req.addSlotsRequest(model);
-                System.out.println("Volviii " + response);
+                SlotsReplyModel response = req.addSlotsRequest(model);
+                System.out.println("Loaded capacity of " + capacity + " for " + ride + " on day " + day + ".");
+                PrintingUtils.printSlotsReply(response);
                 //TODO: Discuss if client side validation or server side is necessary
-
-
-
                 break;
             default:
                 logger.error("Action requested is invalid. Please check action is one of the following options:\n[rides|tickets|slots]");

@@ -1,7 +1,10 @@
 package ar.edu.itba.pod.grpc.persistance;
 
-import ar.edu.itba.pod.grpc.requests.PassType;
-import org.checkerframework.checker.units.qual.A;
+import ar.edu.itba.pod.grpc.models.Attraction;
+import ar.edu.itba.pod.grpc.models.AttractionPass;
+import ar.edu.itba.pod.grpc.models.Reservation;
+import ar.edu.itba.pod.grpc.models.ReservationStatus;
+import ar.edu.itba.pod.grpc.requests.SlotsReplyModel;
 
 import java.time.LocalTime;
 import java.util.*;
@@ -26,18 +29,19 @@ public class ParkRepository {
     public boolean attractionHasCapacityAlready(String name, int day){
         if(attractionExists(name)){
             Optional<Attraction> att = attractions.stream().filter(a -> name.equals(a.getName())).findFirst();
-            return att.map(attraction -> attraction.getCapacities().containsKey(day)).orElse(false);
+            return att.map(attraction -> attraction.getSpaceAvailable().containsKey(day)).orElse(false);
         }
         return false;
     }
 
     //Con att, dia y capacidad, genera la capcaidad para todos los slots de ese día. Hace falta validar
     // las reservas en espera, y confirmarlas/cancelarlas/reubicarlas.
-    public synchronized boolean addSlots(String name, int day, int capacity){
+    public synchronized SlotsReplyModel addSlots(String name, int day, int capacity){
         Attraction att = getAttractionByName(name);
         att.getCapacities().put(day, capacity); //Validations have been done so that attraction does not have capacity yet that day
+        att.initializeSlots(day, capacity);
         // updateReservations(name, day, capacity); //TODO!!!
-        return true;
+        return updateReservations(name, day, capacity);
     }
 
     public synchronized Attraction addRide(Attraction att){
@@ -79,5 +83,65 @@ public class ParkRepository {
     }
 
 
+
+    private SlotsReplyModel updateReservations(String name, int day, int capacity){
+        int confirmed = 0, cancelled = 0, relocated = 0;
+
+        //Method called when an attraction receives a capacity so that it confirms/denies/relocates reservations
+        List<Reservation> attReservs = reservations.get(name).stream()
+                .filter(r -> r.getDay() == day && r.getStatus() == ReservationStatus.PENDING)
+                .toList();
+        attReservs.sort((new Comparator<Reservation>() {
+            @Override
+            public int compare(Reservation o1, Reservation o2) {
+                return o1.getCreatedAt().compareTo(o2.getCreatedAt());
+            }
+        }));
+
+        //Tengo las reservas del día que todavía estan pendientes (es decir, las otras que estaban para ese dia
+        // estan confirmadas o canceladas).
+        // Ahora, tengo que confirmar las primeras N que llegaron
+        Map<LocalTime, Integer> capacities = getAttractionByName(name).getSpaceAvailable().get(day);
+        for(Reservation r : attReservs){
+            int vacants = capacities.get(r.getSlot());
+            if(vacants > 0){
+                // Tengo lugar para la reserva pedida. Confirmo, y bajo capacidad en mapa
+                r.setStatus(ReservationStatus.CONFIRMED);
+                capacities.put(r.getSlot(), capacities.get(r.getSlot()) - 1);
+                confirmed++;
+            }
+            else{
+                // Si no hay lugar, tengo que buscar el primer slot disponible posterior a este para confirmarla
+                // Si no encuentro slot, la cancelo
+                LocalTime firstAvailable = null;
+                TreeSet<LocalTime> keySet = new TreeSet<>(capacities.keySet());
+                List<LocalTime> orderedKeys = new ArrayList<>(keySet).stream()
+                        .filter(a -> a.isAfter(r.getSlot())) // No testeo el == porque con vacants lo chequee
+                        .toList();
+                for(LocalTime t : orderedKeys){ //TODO: Debería hacerlo pero corroborar que itere en orden
+                    if(capacities.get(t) > 0){
+                        firstAvailable = t;
+                        break;
+                    }
+                }
+                if(firstAvailable != null){
+                    r.setStatus(ReservationStatus.CONFIRMED);
+                    r.setSlot(firstAvailable);
+                    capacities.put(firstAvailable, capacities.get(firstAvailable)-1);
+                    relocated++;
+                }
+                else{
+                    r.setStatus(ReservationStatus.CANCELLED); // No hay espacio en ningún slot, se cancela
+                    cancelled++;
+                }
+            }
+
+        }
+        return SlotsReplyModel.newBuilder()
+                .setCancelled(cancelled)
+                .setConfirmed(confirmed)
+                .setRelocated(relocated)
+                .build();
+    }
 
 }

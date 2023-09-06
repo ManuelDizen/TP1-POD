@@ -1,4 +1,4 @@
-package ar.edu.itba.pod.grpc.persistance;
+package ar.edu.itba.pod.grpc.models;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -62,5 +62,9 @@ public class Reservation {
     @Override
     public int hashCode() {
         return Objects.hash(attractionName, day, visitorId, slot);
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
     }
 }

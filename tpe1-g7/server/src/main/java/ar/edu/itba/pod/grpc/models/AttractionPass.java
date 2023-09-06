@@ -1,4 +1,4 @@
-package ar.edu.itba.pod.grpc.persistance;
+package ar.edu.itba.pod.grpc.models;
 
 import ar.edu.itba.pod.grpc.requests.PassType;
 
