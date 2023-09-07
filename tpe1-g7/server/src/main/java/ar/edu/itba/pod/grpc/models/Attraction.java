@@ -3,10 +3,8 @@ package ar.edu.itba.pod.grpc.models;
 import org.checkerframework.checker.units.qual.A;
 
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class Attraction {
     private final String name;
@@ -59,9 +57,36 @@ public class Attraction {
             getSpaceAvailable().get(day).put(opening.plusMinutes((long) minsPerSlot * i), capacity);
             i++;
         }
+        List<Follower> toNotify = followers.stream().filter(a -> a.getDay() == day).toList();
+        for(Follower f : toNotify){
+            f.sendMessage(name + " announced slot capacity for the day " + day +": " + capacity + " places.");
+        }
     }
 
     public List<Follower> getFollowers() {
         return followers;
+    }
+
+    public void addFollower(Follower f){
+        followers.add(f);
+        f.sendMessage("User " + f.getVisitorId().toString() + " is now following attraction " + this.getName()
+            + " for day " + f.getDay());
+    }
+
+    public boolean checkToNotify(Reservation reservation){
+        return followers.stream()
+                .anyMatch(
+                        a -> a.getDay() == reservation.getDay() && a.getVisitorId() == reservation.getVisitorId()
+                );
+    }
+
+    public void notifyReservation(int day, UUID id, Reservation r){
+        Follower f = followers.stream().filter(a -> a.getDay() == day && a.getVisitorId() == id).findFirst().orElseThrow(); // No debería pasar
+        f.sendMessage("The reservation for " + this.getName() + " at " + r.getSlot().toString() +
+                " on the day " + day + " is " + r.getStatus().toString());
+    }
+    public void notifyReservation(int day, UUID id, Reservation r, String message){
+        Follower f = followers.stream().filter(a -> a.getDay() == day && a.getVisitorId() == id).findFirst().orElseThrow(); // No debería pasar
+        f.sendMessage(message);
     }
 }

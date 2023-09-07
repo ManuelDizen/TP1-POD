@@ -44,7 +44,7 @@ public class ParkRepository {
         Attraction att = getAttractionByName(name);
         att.getCapacities().put(day, capacity); //Validations have been done so that attraction does not have capacity yet that day
         att.initializeSlots(day, capacity);
-        // updateReservations(name, day, capacity); //TODO!!!
+        updateReservations(name, day, capacity);
         return updateReservations(name, day, capacity);
     }
 
@@ -59,18 +59,32 @@ public class ParkRepository {
         return true;
     }
 
-    private Attraction getAttractionByName(String name){
+    public Attraction getAttractionByName(String name){
         Optional<Attraction> att = attractions.stream().filter(a -> name.equals(a.getName())).findFirst();
         return att.orElse(null);
 
     }
 
     public boolean visitorHasPass(UUID id, int day){
-        return passes.stream().anyMatch(a -> a.getVisitor().equals(id) && a.getDay()==day);
+        return isValidDay(day) &&
+                passes.stream().anyMatch(a -> a.getVisitor().equals(id) && a.getDay()==day);
     }
 
     public List<Attraction> getAttractions() {
         return attractions;
+    }
+
+    private void manageNotifications(Reservation reservation){
+        Attraction a = getAttractionByName(reservation.getAttractionName());
+        if(a.checkToNotify(reservation))
+            a.notifyReservation(reservation.getDay(), reservation.getVisitorId(), reservation);
+    }
+
+    private void manageNotifications(Reservation reservation, String message){
+        Attraction a = getAttractionByName(reservation.getAttractionName());
+        if(a.checkToNotify(reservation))
+            a.notifyReservation(reservation.getDay(), reservation.getVisitorId(),
+                    reservation, message);
     }
 
     public boolean addReservation(Reservation reservation) {
@@ -82,6 +96,8 @@ public class ParkRepository {
             }
             pendingReservations.add(reservation);
             reservations.put(reservation.getAttractionName(), pendingReservations);
+            manageNotifications(reservation);
+
         } else if(reservation.getStatus() == CONFIRMED) {
             //me busco el mapa Map<Horario, Capacidad> de la atracción para ese día
             Map<LocalTime, Integer> slots = repository.getAttractionByName(reservation.getAttractionName()).getSpaceAvailable().get(reservation.getDay());
@@ -91,6 +107,7 @@ public class ParkRepository {
             }
             capacity--;
             slots.put(reservation.getSlot(), capacity);
+            manageNotifications(reservation);
         }
 
         return true;
@@ -116,6 +133,8 @@ public class ParkRepository {
         // Ahora, tengo que confirmar las primeras N que llegaron
         Map<LocalTime, Integer> capacities = getAttractionByName(name).getSpaceAvailable().get(day);
         for(Reservation r : attReservs){
+            boolean updated = false;
+            LocalTime prevSlot = r.getSlot();
             int vacants = capacities.get(r.getSlot());
             if(vacants > 0){
                 // Tengo lugar para la reserva pedida. Confirmo, y bajo capacidad en mapa
@@ -142,13 +161,22 @@ public class ParkRepository {
                     r.setSlot(firstAvailable);
                     capacities.put(firstAvailable, capacities.get(firstAvailable)-1);
                     relocated++;
+                    updated = true;
+
                 }
                 else{
                     r.setStatus(ReservationStatus.CANCELLED); // No hay espacio en ningún slot, se cancela
                     cancelled++;
                 }
             }
-
+            if(updated){
+                manageNotifications(r, "The reservation for " + r.getAttractionName() + " at "
+                + prevSlot.toString() + " on the day " + day + " was moved to " + r.getSlot().toString()
+                + " and is " + r.getStatus().toString());
+            }
+            else{
+                manageNotifications(r);
+            }
         }
         return SlotsReplyModel.newBuilder()
                 .setCancelled(cancelled)
@@ -185,6 +213,8 @@ public class ParkRepository {
         return 0;
     }
 
-
+    public boolean isValidDay(int day){
+        return day > 0 && day <= 365;
+    }
 
 }
