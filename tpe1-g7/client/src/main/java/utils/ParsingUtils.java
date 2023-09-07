@@ -1,6 +1,5 @@
 package utils;
 
-import ar.edu.itba.pod.grpc.client.Client;
 import ar.edu.itba.pod.grpc.requests.PassType;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -17,7 +16,7 @@ import java.util.Optional;
 
 public class ParsingUtils {
 
-    private static Logger logger = LoggerFactory.getLogger(Client.class);
+    private static Logger logger = LoggerFactory.getLogger(ParsingUtils.class);
 
     public static Optional<String> getSystemProperty(String name){
         System.out.printf(name + "\n");

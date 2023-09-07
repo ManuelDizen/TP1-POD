@@ -4,7 +4,8 @@ import ar.edu.itba.pod.grpc.requests.SlotsReplyModel;
 
 public class PrintingUtils {
 
-    public static void printSlotsReply(SlotsReplyModel model){
+    public static void printSlotsReply(SlotsReplyModel model, int capacity, String ride, int day){
+        System.out.println("Loaded capacity of " + capacity + " for " + ride + " on day " + day + ".");
         if(model.getConfirmed() != 0)
             System.out.println(model.getConfirmed() + " confirmed without changes.\n");
         if(model.getRelocated() != 0)

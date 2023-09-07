@@ -42,6 +42,9 @@ public class BookingClient {
                 break;
             case "cancel":
                 break;
+            default:
+                System.out.println("Invalid action. Please try again.");
+                break;
         }
     }
 

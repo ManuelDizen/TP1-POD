@@ -45,6 +45,16 @@ message ReservationState {
   ResStatus status = 1;
 }
 
+message NotifAttrRequestModel{
+  int32 day = 1;
+  string name = 2;
+  string visitorId = 3;
+}
+
+message NotifAttrReplyModel{
+  string message = 1;
+}
+
 enum PassType{
   UNKNOWN = 0;
   UNLIMITED = 1;

@@ -1,11 +1,10 @@
 package utils;
 
-import ar.edu.itba.pod.grpc.client.Client;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class HostData {
-    private static Logger logger = LoggerFactory.getLogger(Client.class);
+    private static Logger logger = LoggerFactory.getLogger(HostData.class);
 
     private String host;
     private int port;

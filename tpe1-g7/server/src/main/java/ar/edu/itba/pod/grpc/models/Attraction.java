@@ -1,7 +1,11 @@
 package ar.edu.itba.pod.grpc.models;
 
+import org.checkerframework.checker.units.qual.A;
+
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class Attraction {
@@ -11,6 +15,7 @@ public class Attraction {
     private final int minsPerSlot;
     private final Map<Integer, Map<LocalTime, Integer>> spaceAvailable = new HashMap<>();
     private final Map<Integer, Integer> capacities = new HashMap<>();
+    private final List<Follower> followers = new ArrayList<>();
 
     public Attraction(String name, LocalTime opening, LocalTime closing, int minsPerSlot) {
         this.name = name;
@@ -54,5 +59,9 @@ public class Attraction {
             getSpaceAvailable().get(day).put(opening.plusMinutes((long) minsPerSlot * i), capacity);
             i++;
         }
+    }
+
+    public List<Follower> getFollowers() {
+        return followers;
     }
 }

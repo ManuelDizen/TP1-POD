@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/empty.proto";
+import "models.proto";
+
+package requests;
+
+option java_package = "ar.edu.itba.pod.grpc.requests";
+option java_multiple_files = true;
+
+service NotifRequestsService{
+
+  rpc FollowAttrRequest(NotifAttrRequestModel) returns (stream NotifAttrReplyModel);
+
+  rpc UnfollowAttrRequest(NotifAttrRequestModel) returns (stream NotifAttrReplyModel);
+
+}

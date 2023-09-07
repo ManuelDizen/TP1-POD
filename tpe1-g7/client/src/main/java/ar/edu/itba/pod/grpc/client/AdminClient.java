@@ -47,7 +47,6 @@ public class AdminClient {
                             .setMinsPerSlot(minsPerSlot)
                             .build();
                     Int32Value response = req.addRidesRequest(model);
-                    System.out.printf("Volviii (slots) " + response);
                     added += response.getValue();
                 }
                 PrintingUtils.printRidesReply(entries.size(), added);
@@ -68,7 +67,6 @@ public class AdminClient {
                             .setId(id)
                             .build();
                     Int32Value response = req.addTicketsRequest(model);
-                    System.out.println("Volviii (tikcets) " + response);
                     added += response.getValue();
                 }
                 PrintingUtils.printTicketsReply(entries.size(), added);
@@ -89,8 +87,7 @@ public class AdminClient {
                         .setRide(ride)
                         .build();
                 SlotsReplyModel response = req.addSlotsRequest(model);
-                System.out.println("Loaded capacity of " + capacity + " for " + ride + " on day " + day + ".");
-                PrintingUtils.printSlotsReply(response);
+                PrintingUtils.printSlotsReply(response, capacity, ride, day);
                 //TODO: Discuss if client side validation or server side is necessary
                 break;
             default:
