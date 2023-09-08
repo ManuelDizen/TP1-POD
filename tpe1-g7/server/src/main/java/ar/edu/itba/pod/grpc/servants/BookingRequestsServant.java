@@ -32,8 +32,8 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
 
         for(Attraction att : attractions) {
             RidesRequestModel ride = RidesRequestModel.newBuilder().setName(att.getName())
-                    .setOpening(att.getOpening())
-                    .setClosing(att.getClosing())
+                    .setOpening(String.valueOf(att.getOpening()))
+                    .setClosing(String.valueOf(att.getClosing()))
                     .setMinsPerSlot(att.getMinsPerSlot())
                     .build();
             responseObserver.onNext(ride);
@@ -50,7 +50,8 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
         int day = request.getDay();
         UUID id = UUID.fromString(request.getId());
         String attraction = request.getName();
-        LocalTime slot = LocalTime.parse(request.getTime());
+        LocalTime slot = repository.getAttractionByName(attraction).getSlot(LocalTime.parse(request.getTime()));
+        System.out.println("slot: " + slot);
 
         if(day < 1 || day > 365){
             bookOnError("Day is invalid", "Internal", responseObserver);
@@ -87,6 +88,8 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
         }
 
     }
+
+
 
     private void bookOnError(String errMsg, String status, StreamObserver<ReservationState> responseObserver){
         logger.error(errMsg);

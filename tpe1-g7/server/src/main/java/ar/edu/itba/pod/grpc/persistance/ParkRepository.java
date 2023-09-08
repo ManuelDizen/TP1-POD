@@ -44,7 +44,7 @@ public class ParkRepository {
         Attraction att = getAttractionByName(name);
         att.getCapacities().put(day, capacity); //Validations have been done so that attraction does not have capacity yet that day
         att.initializeSlots(day, capacity);
-        updateReservations(name, day, capacity);
+        //updateReservations(name, day, capacity);
         return updateReservations(name, day, capacity);
     }
 
@@ -117,10 +117,14 @@ public class ParkRepository {
     private SlotsReplyModel updateReservations(String name, int day, int capacity){
         int confirmed = 0, cancelled = 0, relocated = 0;
 
+        System.out.println("en updateReservations");
+
         //Method called when an attraction receives a capacity so that it confirms/denies/relocates reservations
         List<Reservation> attReservs = new ArrayList<>(reservations.get(name).stream()
                 .filter(r -> r.getDay() == day && r.getStatus() == PENDING)
                 .toList());
+
+        System.out.println("Reservations para " + name + ": ");
         attReservs.sort((new Comparator<Reservation>() {
             @Override
             public int compare(Reservation o1, Reservation o2) {
@@ -128,23 +132,30 @@ public class ParkRepository {
             }
         }));
 
+        for(Reservation res : attReservs)
+            System.out.println(res.getDay() + " - " + res.getSlot());
+
         //Tengo las reservas del día que todavía estan pendientes (es decir, las otras que estaban para ese dia
         // estan confirmadas o canceladas).
         // Ahora, tengo que confirmar las primeras N que llegaron
         Map<LocalTime, Integer> capacities = getAttractionByName(name).getSpaceAvailable().get(day);
+
         for(Reservation r : attReservs){
             boolean updated = false;
             LocalTime prevSlot = r.getSlot();
-            int vacants = capacities.get(r.getSlot());
+            int vacants = capacities.get(prevSlot);
+
             if(vacants > 0){
                 // Tengo lugar para la reserva pedida. Confirmo, y bajo capacidad en mapa
+                System.out.println("slot: " + prevSlot + " - vacants: " + vacants);
                 r.setStatus(ReservationStatus.CONFIRMED);
-                capacities.put(r.getSlot(), capacities.get(r.getSlot()) - 1);
+                capacities.put(prevSlot, capacities.get(r.getSlot()) - 1);
                 confirmed++;
             }
             else{
                 // Si no hay lugar, tengo que buscar el primer slot disponible posterior a este para confirmarla
                 // Si no encuentro slot, la cancelo
+                System.out.println("no hay vacants para slot :" + prevSlot);
                 LocalTime firstAvailable = null;
                 TreeSet<LocalTime> keySet = new TreeSet<>(capacities.keySet());
                 List<LocalTime> orderedKeys = new ArrayList<>(keySet).stream()
@@ -156,6 +167,7 @@ public class ParkRepository {
                         break;
                     }
                 }
+                System.out.println("first available: " + firstAvailable);
                 if(firstAvailable != null){
                     //TODO IMPORTANTE: Si pase es de medio dia, y la reserva se mueve para después, SE CANCELA
                     r.setStatus(PENDING);

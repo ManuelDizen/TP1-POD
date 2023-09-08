@@ -26,12 +26,12 @@ public class Attraction {
         return name;
     }
 
-    public String getOpening() {
-        return String.valueOf(opening);
+    public LocalTime getOpening() {
+        return opening;
     }
 
-    public String getClosing() {
-        return String.valueOf(closing);
+    public LocalTime getClosing() {
+        return closing;
     }
 
     public int getMinsPerSlot() {
@@ -57,10 +57,20 @@ public class Attraction {
             getSpaceAvailable().get(day).put(opening.plusMinutes((long) minsPerSlot * i), capacity);
             i++;
         }
+
         List<Follower> toNotify = followers.stream().filter(a -> a.getDay() == day).toList();
         for(Follower f : toNotify){
             f.sendMessage(name + " announced slot capacity for the day " + day +": " + capacity + " places.");
         }
+    }
+
+    public LocalTime getSlot(LocalTime slot) {
+
+        int i;
+
+        for(i=0; opening.plusMinutes((long) minsPerSlot * i).isBefore(slot) || opening.plusMinutes((long) minsPerSlot * i).equals(slot); i++);
+
+        return opening.plusMinutes((long) minsPerSlot *(i-1));
     }
 
     public List<Follower> getFollowers() {
