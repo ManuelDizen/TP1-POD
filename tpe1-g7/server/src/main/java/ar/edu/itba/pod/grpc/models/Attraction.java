@@ -80,6 +80,21 @@ public class Attraction {
                 );
     }
 
+    public void unsubscribeFollower(UUID visitorId, int day){
+        Follower f = followers.stream().filter(follower -> follower.getDay() == day
+                && follower.getVisitorId().equals(visitorId)).findFirst().orElseThrow();
+        f.close();
+        followers.remove(f);
+    }
+
+    public boolean isVisitorSubscribedForDay(Follower f){
+        return followers.contains(f);
+    }
+
+    public boolean isVisitorSubscribedForDay(UUID visitorId, int day){
+        return isVisitorSubscribedForDay(new Follower(visitorId, day, null));
+    }
+
     public void notifyReservation(int day, UUID id, Reservation r){
         Follower f = followers.stream().filter(a -> a.getDay() == day && a.getVisitorId() == id).findFirst().orElseThrow(); // No debería pasar
         f.sendMessage("The reservation for " + this.getName() + " at " + r.getSlot().toString() +

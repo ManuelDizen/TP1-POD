@@ -61,7 +61,45 @@ public class NotifRequestsServant extends NotifRequestsServiceGrpc.NotifRequests
     @Override
     public void unfollowAttrRequest(NotifAttrRequestModel request,
                                     StreamObserver<NotifAttrReplyModel> responseObserver){
+        int day = request.getDay();
+        UUID visitorId = UUID.fromString(request.getVisitorId());
+        String name = request.getName();
 
+        repository.getAttractions().stream()
+                .filter(a -> Objects.equals(a.getName(), name)) // ¿Existe atracción?
+                .findFirst().ifPresentOrElse(
+                        a -> {
+                            if(!repository.isValidDay(day)){
+                                String msg = "Day " + day + " is invalid.";
+                                logger.error(msg);
+                                responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(msg).asRuntimeException());
+                                return;
+                            }
+                            if(!repository.visitorHasPass(visitorId, day)){
+                                String msg = "Day " + day + " is invalid.";
+                                logger.error(msg);
+                                responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(msg).asRuntimeException());
+                                return;
+                            }
+                            if(!a.isVisitorSubscribedForDay(visitorId, day)){
+                                String msg = "Visitor " + visitorId + " is not subscribed for day " + day + ".";
+                                logger.error(msg);
+                                responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(msg).asRuntimeException());
+                                return;
+                            }
+                            a.unsubscribeFollower(visitorId, day);
+                            NotifAttrReplyModel replyModel = NotifAttrReplyModel.newBuilder().setMessage("Visitor " +
+                                            visitorId + " succesfully unfollowed attraction" + name + " for day " + day + ".")
+                                    .build();
+                            responseObserver.onNext(replyModel);
+                            responseObserver.onCompleted();
+                        },
+                        () -> {
+                            String msg = "Attraction " + name + " does not exist.";
+                            logger.error(msg);
+                            responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(msg).asRuntimeException());
+                        }
+                );
     }
 
 }

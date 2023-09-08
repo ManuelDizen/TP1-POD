@@ -13,6 +13,6 @@ service NotifRequestsService{
 
   rpc FollowAttrRequest(NotifAttrRequestModel) returns (stream NotifAttrReplyModel);
 
-  rpc UnfollowAttrRequest(NotifAttrRequestModel) returns (stream NotifAttrReplyModel);
+  rpc UnfollowAttrRequest(NotifAttrRequestModel) returns (NotifAttrReplyModel);
 
 }

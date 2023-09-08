@@ -157,6 +157,7 @@ public class ParkRepository {
                     }
                 }
                 if(firstAvailable != null){
+                    //TODO IMPORTANTE: Si pase es de medio dia, y la reserva se mueve para después, SE CANCELA
                     r.setStatus(PENDING);
                     r.setSlot(firstAvailable);
                     capacities.put(firstAvailable, capacities.get(firstAvailable)-1);

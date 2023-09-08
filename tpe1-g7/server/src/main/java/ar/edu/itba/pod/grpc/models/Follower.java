@@ -29,6 +29,11 @@ public class Follower {
         return day;
     }
 
+    public void close(){
+        sendMessage("Subscription now closing.");
+        obs.onCompleted();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
