@@ -50,20 +50,9 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
         int day = request.getDay();
         UUID id = UUID.fromString(request.getId());
         String attraction = request.getName();
-        LocalTime slot = repository.getAttractionByName(attraction).getSlot(LocalTime.parse(request.getTime()));
-        System.out.println("slot: " + slot);
+        LocalTime time = LocalTime.parse(request.getTime());
 
-        if(day < 1 || day > 365){
-            bookOnError("Day is invalid", "Internal", responseObserver);
-        }
-
-        if(!repository.attractionExists(attraction)) {
-            bookOnError("Ride not found", "Not found", responseObserver);
-        }
-
-        if(!repository.visitorHasPass(id, day) || !repository.visitorCanVisit(id, day, slot)) {
-            bookOnError("Invalid pass", "Permission denied", responseObserver);
-        }
+        LocalTime slot = checkBookingParameters(attraction, day, time, id, responseObserver);
 
         if(!repository.attractionHasCapacityAlready(attraction, day)) {
             System.out.println("no hay capacidad");
@@ -89,6 +78,73 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
 
     }
 
+    @Override
+    public void confirmBooking(BookRequestModel request, StreamObserver<ReservationState> responseObserver) {
+
+        int day = request.getDay();
+        UUID id = UUID.fromString(request.getId());
+        String attraction = request.getName();
+        LocalTime time = LocalTime.parse(request.getTime());
+
+        LocalTime slot = checkBookingParameters(attraction, day, time, id, responseObserver);
+
+        if(!repository.attractionHasCapacityAlready(attraction, day)) {
+            bookOnError("Ride not available", "Internal", responseObserver);
+        }
+
+        int amount = repository.confirmReservation(attraction, day, slot, id);
+
+        if(amount <= 0)
+            bookOnError("Reservation not found", "Not found", responseObserver);
+
+        responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.CONFIRMED).setAmount(amount).build());
+        responseObserver.onCompleted();
+
+    }
+
+    @Override
+    public void cancelBooking(BookRequestModel request, StreamObserver<ReservationState> responseObserver) {
+
+        int day = request.getDay();
+        UUID id = UUID.fromString(request.getId());
+        String attraction = request.getName();
+        LocalTime time = LocalTime.parse(request.getTime());
+
+        LocalTime slot = checkBookingParameters(attraction, day, time, id, responseObserver);
+
+        int amount = repository.cancelReservation(attraction, day, slot, id);
+
+        if(amount <= 0)
+            bookOnError("Reservation not found", "Not found", responseObserver);
+
+        responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.CANCELLED).setAmount(amount).build());
+        responseObserver.onCompleted();
+
+    }
+
+    private LocalTime checkBookingParameters(String name, int day, LocalTime time, UUID id, StreamObserver<ReservationState> responseObserver) {
+
+        if(!repository.attractionExists(name)) {
+            bookOnError("Ride not found", "Not found", responseObserver);
+        }
+
+        Attraction attraction = repository.getAttractionByName(name);
+
+        if(day < 1 || day > 365){
+            bookOnError("Day is invalid", "Internal", responseObserver);
+        }
+
+        if(!attraction.isValidSlot(time))
+            bookOnError("Slot is invalid", "Internal", responseObserver);
+
+        LocalTime slot = repository.getAttractionByName(name).getSlot(time);
+
+        if(!repository.visitorHasPass(id, day) || !repository.visitorCanVisit(id, day, slot)) {
+            bookOnError("Invalid pass", "Permission denied", responseObserver);
+        }
+
+        return slot;
+    }
 
 
     private void bookOnError(String errMsg, String status, StreamObserver<ReservationState> responseObserver){

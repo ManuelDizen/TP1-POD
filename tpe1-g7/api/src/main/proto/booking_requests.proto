@@ -25,4 +25,8 @@ service BookingRequestsService{
 
   rpc BookingRequest(BookRequestModel) returns (ReservationState);
 
+  rpc ConfirmBooking(BookRequestModel) returns (ReservationState);
+
+  rpc CancelBooking(BookRequestModel) returns (ReservationState);
+
 }
