@@ -56,7 +56,7 @@ public class Reservation {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Reservation that = (Reservation) o;
-        return day == that.day && attractionName.equals(that.attractionName) && visitorId.equals(that.visitorId) && slot.equals(that.slot);
+        return day == that.day && attractionName.equals(that.attractionName) && visitorId.equals(that.visitorId) && slot.equals(that.slot) &&createdAt.equals(that.createdAt);
     }
 
     @Override

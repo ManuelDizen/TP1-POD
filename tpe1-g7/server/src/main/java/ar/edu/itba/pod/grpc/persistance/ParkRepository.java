@@ -118,9 +118,9 @@ public class ParkRepository {
         int confirmed = 0, cancelled = 0, relocated = 0;
 
         //Method called when an attraction receives a capacity so that it confirms/denies/relocates reservations
-        List<Reservation> attReservs = reservations.get(name).stream()
+        List<Reservation> attReservs = new ArrayList<>(reservations.get(name).stream()
                 .filter(r -> r.getDay() == day && r.getStatus() == PENDING)
-                .toList();
+                .toList());
         attReservs.sort((new Comparator<Reservation>() {
             @Override
             public int compare(Reservation o1, Reservation o2) {

@@ -6,6 +6,7 @@ import ar.edu.itba.pod.grpc.models.Reservation;
 import ar.edu.itba.pod.grpc.models.ReservationStatus;
 import ar.edu.itba.pod.grpc.requests.*;
 import com.google.protobuf.Empty;
+import com.google.protobuf.Int32Value;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
@@ -43,58 +44,63 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
 
     @Override
     public void bookingRequest(BookRequestModel request, StreamObserver<ReservationState> responseObserver) {
-        String errMsg;
+
+        System.out.println("estoy en book");
+
         int day = request.getDay();
         UUID id = UUID.fromString(request.getId());
         String attraction = request.getName();
         LocalTime slot = LocalTime.parse(request.getTime());
 
         if(day < 1 || day > 365){
-            errMsg = "Day is invalid";
-            logger.error(errMsg);
-            responseObserver.onError(Status.INTERNAL.withDescription(errMsg).asRuntimeException());
+            bookOnError("Day is invalid", "Internal", responseObserver);
         }
 
         if(!repository.attractionExists(attraction)) {
-            errMsg = "Ride not found";
-            logger.error(errMsg);
-            responseObserver.onError(Status.NOT_FOUND.withDescription(errMsg).asRuntimeException());
+            bookOnError("Ride not found", "Not found", responseObserver);
         }
 
         if(!repository.visitorHasPass(id, day) || !repository.visitorCanVisit(id, day, slot)) {
-            errMsg = "Invalid pass";
-            logger.error(errMsg);
-            responseObserver.onError(Status.PERMISSION_DENIED.withDescription(errMsg).asRuntimeException());
+            bookOnError("Invalid pass", "Permission denied", responseObserver);
         }
 
         if(!repository.attractionHasCapacityAlready(attraction, day)) {
+            System.out.println("no hay capacidad");
             if(repository.addReservation(new Reservation(attraction, day, id, slot, ReservationStatus.PENDING))) {
                 responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.PENDING).build());
                 responseObserver.onCompleted();
+            } else
+                bookOnError("Unknown error", "Internal", responseObserver);
+        } else {
+            int capacity = repository.getRemainingCapacity(attraction, day, slot);
+
+            if(capacity <= 0) {
+                bookOnError("Slot is full", "Permission denied", responseObserver);
             }
-            errMsg = "Unknown error";
-            logger.error(errMsg);
-            responseObserver.onError(Status.INTERNAL.withDescription(errMsg).asRuntimeException());
+
+            if(repository.addReservation(new Reservation(attraction, day, id, slot, ReservationStatus.CONFIRMED))) {
+                responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.CONFIRMED).build());
+                responseObserver.onCompleted();
+            } else {
+                bookOnError("Unknown error", "Internal", responseObserver);
+            }
         }
 
-        int capacity = repository.getRemainingCapacity(attraction, day, slot);
+    }
 
-        if(capacity <= 0) {
-            errMsg = "Slot is full";
-            logger.error(errMsg);
-            responseObserver.onError(Status.PERMISSION_DENIED.withDescription(errMsg).asRuntimeException());
-        }
-
-        if(repository.addReservation(new Reservation(attraction, day, id, slot, ReservationStatus.CONFIRMED))) {
-            responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.CONFIRMED).build());
-            responseObserver.onCompleted();
-        }
-
-        errMsg = "Unknown error";
+    private void bookOnError(String errMsg, String status, StreamObserver<ReservationState> responseObserver){
         logger.error(errMsg);
-        responseObserver.onError(Status.INTERNAL.withDescription(errMsg).asRuntimeException());
-
-
+        switch (status) {
+            case "Permission denied":
+                responseObserver.onError(Status.PERMISSION_DENIED.withDescription(errMsg).asRuntimeException());
+                break;
+            case "Not found":
+                responseObserver.onError(Status.NOT_FOUND.withDescription(errMsg).asRuntimeException());
+                break;
+            default:
+                responseObserver.onError(Status.INTERNAL.withDescription(errMsg).asRuntimeException());
+                break;
+        }
     }
 
 
