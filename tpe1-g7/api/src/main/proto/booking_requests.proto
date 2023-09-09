@@ -23,6 +23,8 @@ service BookingRequestsService{
 
   rpc GetAttractionsRequest(google.protobuf.Empty) returns(stream RidesRequestModel);
 
+  rpc CheckAvailability(AvailabilityRequestModel) returns (AvailabilityResponseModel);
+
   rpc BookingRequest(BookRequestModel) returns (ReservationState);
 
   rpc ConfirmBooking(BookRequestModel) returns (ReservationState);
