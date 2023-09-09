@@ -1,10 +1,8 @@
 package ar.edu.itba.pod.grpc.models;
 
-import org.checkerframework.checker.units.qual.A;
 
 import java.time.LocalTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class Attraction {
     private final String name;

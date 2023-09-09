@@ -6,13 +6,11 @@ import ar.edu.itba.pod.grpc.models.Reservation;
 import ar.edu.itba.pod.grpc.models.ReservationStatus;
 import ar.edu.itba.pod.grpc.requests.*;
 import com.google.protobuf.Empty;
-import com.google.protobuf.Int32Value;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.awt.print.Book;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;

@@ -6,7 +6,6 @@ import ar.edu.itba.pod.grpc.models.AttractionPass;
 import ar.edu.itba.pod.grpc.models.Reservation;
 import ar.edu.itba.pod.grpc.models.ReservationStatus;
 import ar.edu.itba.pod.grpc.requests.SlotsReplyModel;
-import org.w3c.dom.Attr;
 
 import java.time.LocalTime;
 import java.util.*;
@@ -129,7 +128,7 @@ public class ParkRepository {
         List<Reservation> PRDay = new ArrayList<>();
         for (Attraction attr : attractionList) {
             if (!attractionHasCapacityAlready(attr.getName(), day)) {
-                PRDay.addAll(reservations.get(attr).stream().filter(a -> a.getDay() == day && a.getStatus() == PENDING).toList());
+                PRDay.addAll(reservations.get(attr.getName()).stream().filter(a -> a.getDay() == day && a.getStatus() == PENDING).toList());
             }
         }
         return PRDay;
@@ -139,7 +138,7 @@ public class ParkRepository {
         List<Attraction> attractionList = getAttractions();
         List<Reservation> CRDay = new ArrayList<>();
         for (Attraction attr : attractionList) {
-            CRDay.addAll(reservations.get(attr).stream().filter(a -> a.getDay() == day && a.getStatus() == CONFIRMED).toList());
+            CRDay.addAll(reservations.get(attr.getName()).stream().filter(a -> a.getDay() == day && a.getStatus() == CONFIRMED).toList());
         }
         return CRDay;
     }
