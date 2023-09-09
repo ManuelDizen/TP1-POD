@@ -135,7 +135,14 @@ public class ParkRepository {
         return PRDay;
     }
 
-
+    public List<Reservation> getConfirmedReservationsByDay(int day) {
+        List<Attraction> attractionList = getAttractions();
+        List<Reservation> CRDay = new ArrayList<>();
+        for (Attraction attr : attractionList) {
+            CRDay.addAll(reservations.get(attr).stream().filter(a -> a.getDay() == day && a.getStatus() == CONFIRMED).toList());
+        }
+        return CRDay;
+    }
 
     private SlotsReplyModel updateReservations(String name, int day, int capacity){
         int confirmed = 0, cancelled = 0, relocated = 0;
