@@ -47,13 +47,13 @@ message QueryRequestModel {
 }
 
 message QueryCapacityModel {
-  google.protobuf.Timestamp slot = 1;
+  string slot = 1;
   int32 capacity = 2;
   string attraction = 3;
 }
 
 message QueryConfirmedModel {
-  google.protobuf.Timestamp slot = 1;
+  string slot = 1;
   string visitor = 2;
   string attraction = 3;
 }

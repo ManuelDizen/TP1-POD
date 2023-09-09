@@ -17,7 +17,7 @@ import java.util.List;
 
 public class QueryClient {
     private static final Logger logger = LoggerFactory.getLogger(AdminClient.class);
-
+    //TODO: checkear que los parametros de entrada sean correctos
     public static void main(String[] args) throws InterruptedException {
         logger.info("QueryClient starting...");
 
@@ -37,6 +37,13 @@ public class QueryClient {
                 QueryRequestModel modelC = QueryRequestModel.newBuilder().setDay(dayC).build();
                 List<QueryCapacityModel> capacityList = new ArrayList<>();
                 req.getCapacityRequest(modelC).forEachRemaining(capacityList::add);
+                //TODO: puedo sortear aca??
+                capacityList.sort((o1, o2) -> {
+                    int diff = o2.getCapacity() - o1.getCapacity();
+                    if(diff == 0)
+                        return o1.getAttraction().compareTo(o2.getAttraction());
+                    return diff;
+                });
                 writeCapacityOutput(capacityList, outPath);
                 break;
             case "confirmed":

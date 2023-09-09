@@ -118,6 +118,19 @@ public class ParkRepository {
 //        return reservationsForAttraction.stream().filter(a ->  a.getDay() == day && a.getVisitorId() == visitorId && a.getSlot().equals(slot) && a.getStatus() == PENDING).toList();
 //    }
 
+    public List<Reservation> getPendingReservationsByDay(int day) {
+        List<Attraction> attractionList = getAttractions();
+        List<Reservation> PRDay = new ArrayList<>();
+        for (Attraction attr : attractionList) {
+            if (!attractionHasCapacityAlready(attr.getName(), day)) {
+                PRDay.addAll(reservations.get(attr).stream().filter(a -> a.getDay() == day && a.getStatus() == PENDING).toList());
+            }
+        }
+        return PRDay;
+    }
+
+
+
     private SlotsReplyModel updateReservations(String name, int day, int capacity){
         int confirmed = 0, cancelled = 0, relocated = 0;
 
