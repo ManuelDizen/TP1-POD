@@ -11,4 +11,12 @@ public class ConnectionUtils {
                 .usePlaintext()
                 .build();
     }
+
+    public static ManagedChannel createNewChannel(String serverAddress){
+        String hostData = serverAddress;
+        System.out.println("Host data desde createNewChannel: " + hostData + "\n");
+        return ManagedChannelBuilder.forTarget(hostData)
+                .usePlaintext()
+                .build();
+    }
 }

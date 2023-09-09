@@ -3,6 +3,7 @@ syntax = "proto3";
 
 import "google/protobuf/wrappers.proto";
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 
 package requests;
 
@@ -39,6 +40,22 @@ message BookRequestModel {
   int32 day = 2;
   string time = 3;
   string id = 4;
+}
+
+message QueryRequestModel {
+  int32 day = 1;
+}
+
+message QueryCapacityModel {
+  google.protobuf.Timestamp slot = 1;
+  int32 capacity = 2;
+  string attraction = 3;
+}
+
+message QueryConfirmedModel {
+  google.protobuf.Timestamp slot = 1;
+  string visitor = 2;
+  string attraction = 3;
 }
 
 message ReservationState {
