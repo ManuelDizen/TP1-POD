@@ -3,7 +3,6 @@ package ar.edu.itba.pod.grpc.client;
 import ar.edu.itba.pod.grpc.requests.*;
 import com.google.protobuf.Int32Value;
 import io.grpc.ManagedChannel;
-import jdk.jshell.spi.ExecutionControl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.ConnectionUtils;
@@ -11,14 +10,11 @@ import utils.ParsingUtils;
 import utils.PrintingUtils;
 import utils.PropertyNames;
 
-import java.sql.Array;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class AdminClient {
-    private static Logger logger = LoggerFactory.getLogger(AdminClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(AdminClient.class);
 
     public static void main(String[] args) throws InterruptedException {
         logger.info("AdminClient starting...");

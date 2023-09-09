@@ -16,7 +16,7 @@ import java.util.Optional;
 
 public class ParsingUtils {
 
-    private static Logger logger = LoggerFactory.getLogger(ParsingUtils.class);
+    private static final Logger logger = LoggerFactory.getLogger(ParsingUtils.class);
 
     public static Optional<String> getSystemProperty(String name){
         System.out.printf(name + "\n");

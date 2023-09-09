@@ -5,10 +5,7 @@ import ar.edu.itba.pod.grpc.requests.BookingRequestsServiceGrpc;
 import ar.edu.itba.pod.grpc.requests.ReservationState;
 import ar.edu.itba.pod.grpc.requests.RidesRequestModel;
 import com.google.protobuf.Empty;
-import com.google.protobuf.Int32Value;
 import io.grpc.ManagedChannel;
-import io.grpc.Status;
-import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.ConnectionUtils;
@@ -20,10 +17,10 @@ import java.util.List;
 
 public class BookingClient {
 
-    private static Logger logger = LoggerFactory.getLogger(BookingClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(BookingClient.class);
 
     public static void main(String[] args) throws InterruptedException {
-        logger.info("AdminClient starting...");
+        logger.info("BookingClient starting...");
 
         ManagedChannel channel = ConnectionUtils.createChannel();
 

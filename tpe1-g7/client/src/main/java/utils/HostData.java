@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class HostData {
-    private static Logger logger = LoggerFactory.getLogger(HostData.class);
+    private static final Logger logger = LoggerFactory.getLogger(HostData.class);
 
     private String host;
     private int port;
@@ -14,6 +14,7 @@ public class HostData {
         this.port = port;
     }
 
+    //TODO: not used yet
     public HostData(String unparsed){
         HostData d = ParsingUtils.parseIpPort(unparsed);
         if(d == null){

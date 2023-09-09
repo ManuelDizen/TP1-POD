@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class QueryClient {
-    private static Logger logger = LoggerFactory.getLogger(AdminClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(AdminClient.class);
 
     public static void main(String[] args) throws InterruptedException {
         logger.info("QueryClient starting...");
@@ -24,7 +24,7 @@ public class QueryClient {
         String action = ParsingUtils.getSystemProperty(PropertyNames.ACTION).orElseThrow();
         //TODO: NullPointerDereference
         String serverAddress = ParsingUtils.getSystemProperty(PropertyNames.SERVER_ADDRESS).orElseThrow();
-        String outPath = ParsingUtils.getSystemProperty(PropertyNames.IN_PATH).orElseThrow();
+        String outPath = ParsingUtils.getSystemProperty(PropertyNames.OUT_PATH).orElseThrow();
 
         ManagedChannel channel = ConnectionUtils.createNewChannel(serverAddress);
 

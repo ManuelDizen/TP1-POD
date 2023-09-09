@@ -5,7 +5,6 @@ import ar.edu.itba.pod.grpc.requests.NotifAttrRequestModel;
 import ar.edu.itba.pod.grpc.requests.NotifRequestsServiceGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
-import org.checkerframework.checker.units.qual.C;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.ConnectionUtils;
@@ -15,10 +14,10 @@ import utils.PropertyNames;
 import java.util.concurrent.CountDownLatch;
 
 public class NotifClient {
-    private static Logger logger = LoggerFactory.getLogger(NotifClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(NotifClient.class);
 
     public static void main(String[] args) throws InterruptedException {
-        logger.info("AdminClient starting...");
+        logger.info("NotifyClient starting...");
 
         ManagedChannel channel = ConnectionUtils.createChannel();
 
