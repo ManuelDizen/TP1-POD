@@ -6,6 +6,7 @@ import ar.edu.itba.pod.grpc.models.AttractionPass;
 import ar.edu.itba.pod.grpc.models.Reservation;
 import ar.edu.itba.pod.grpc.models.ReservationStatus;
 import ar.edu.itba.pod.grpc.requests.SlotsReplyModel;
+import org.w3c.dom.Attr;
 
 import java.time.LocalTime;
 import java.util.*;
@@ -64,6 +65,11 @@ public class ParkRepository {
 
     }
 
+    public boolean isValidSlot(String attraction, LocalTime slot) {
+        Attraction att = getAttractionByName(attraction);
+        return !slot.isBefore(att.getOpening()) && !slot.isAfter(att.getClosing());
+    }
+
     public boolean visitorHasPass(UUID id, int day){
         return isValidDay(day) &&
                 passes.stream().anyMatch(a -> a.getVisitor().equals(id) && a.getDay()==day);
@@ -113,10 +119,10 @@ public class ParkRepository {
 
     }
 
-//    public List<Reservation> getPendingReservations(String attraction, int day, LocalTime slot, UUID visitorId) {
-//        List<Reservation> reservationsForAttraction = reservations.get(attraction);
-//        return reservationsForAttraction.stream().filter(a ->  a.getDay() == day && a.getVisitorId() == visitorId && a.getSlot().equals(slot) && a.getStatus() == PENDING).toList();
-//    }
+    public int getReservations(String attraction, int day, LocalTime slot, ReservationStatus status) {
+        List<Reservation> reservationsForAttraction = reservations.get(attraction);
+        return (int) reservationsForAttraction.stream().filter(a ->  a.getDay() == day && a.getSlot().equals(slot) && a.getStatus() == status).count();
+    }
 
     private SlotsReplyModel updateReservations(String name, int day, int capacity){
         int confirmed = 0, cancelled = 0, relocated = 0;

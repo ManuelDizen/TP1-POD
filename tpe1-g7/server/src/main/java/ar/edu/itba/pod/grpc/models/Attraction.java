@@ -64,10 +64,6 @@ public class Attraction {
         }
     }
 
-    public boolean isValidSlot(LocalTime slot) {
-        return !slot.isBefore(opening) && !slot.isAfter(closing);
-    }
-
     public LocalTime getSlot(LocalTime slot) {
 
         int i;
