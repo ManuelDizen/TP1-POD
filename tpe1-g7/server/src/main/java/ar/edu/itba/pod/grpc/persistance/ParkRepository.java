@@ -5,10 +5,13 @@ import ar.edu.itba.pod.grpc.models.Attraction;
 import ar.edu.itba.pod.grpc.models.AttractionPass;
 import ar.edu.itba.pod.grpc.models.Reservation;
 import ar.edu.itba.pod.grpc.models.ReservationStatus;
+import ar.edu.itba.pod.grpc.requests.QueryCapacityModel;
+import ar.edu.itba.pod.grpc.requests.QueryConfirmedModel;
 import ar.edu.itba.pod.grpc.requests.SlotsReplyModel;
 
 import java.time.LocalTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static ar.edu.itba.pod.grpc.models.ReservationStatus.*;
 
@@ -123,24 +126,62 @@ public class ParkRepository {
         return (int) reservationsForAttraction.stream().filter(a ->  a.getDay() == day && a.getSlot().equals(slot) && a.getStatus() == status).count();
     }
 
-    public List<Reservation> getPendingReservationsByDay(int day) {
+    public List<QueryCapacityModel> getPendingReservationsByDay(int day) {
         List<Attraction> attractionList = getAttractions();
-        List<Reservation> PRDay = new ArrayList<>();
+        List<Reservation> PRDay;
+        List<QueryCapacityModel> capacityList = new ArrayList<>();
         for (Attraction attr : attractionList) {
             if (!attractionHasCapacityAlready(attr.getName(), day)) {
-                PRDay.addAll(reservations.get(attr.getName()).stream().filter(a -> a.getDay() == day && a.getStatus() == PENDING).toList());
+                PRDay = reservations.get(attr.getName()).stream().filter(a -> a.getDay() == day && a.getStatus() == PENDING).toList();
+                for (Reservation reservation : PRDay) {
+                    Map<LocalTime, Long> acc = PRDay.stream().collect(
+                            Collectors.groupingBy(Reservation::getSlot, Collectors.counting())
+                    );
+                    LocalTime maxSlot = acc.entrySet().stream().max(Map.Entry.comparingByValue())
+                            .map(Map.Entry::getKey).orElse(null);
+                    QueryCapacityModel capacityModel = QueryCapacityModel.newBuilder()
+                            .setSlot(maxSlot.toString())
+                            .setCapacity(acc.get(maxSlot).intValue())
+                            .setAttraction(reservation.getAttractionName())
+                            .build();
+                    capacityList.add(capacityModel);
+                }
             }
         }
-        return PRDay;
+        capacityList.sort((o1, o2) -> {
+            int diff = o2.getCapacity() - o1.getCapacity();
+            if(diff == 0)
+                diff = o1.getAttraction().compareTo(o2.getAttraction());
+            return diff;
+        });
+        return capacityList;
     }
 
-    public List<Reservation> getConfirmedReservationsByDay(int day) {
+    public List<QueryConfirmedModel> getConfirmedReservationsByDay(int day) {
         List<Attraction> attractionList = getAttractions();
-        List<Reservation> CRDay = new ArrayList<>();
+        List<Reservation> CRDay;
+        List<QueryConfirmedModel> confirmedList = new ArrayList<>();
         for (Attraction attr : attractionList) {
-            CRDay.addAll(reservations.get(attr.getName()).stream().filter(a -> a.getDay() == day && a.getStatus() == CONFIRMED).toList());
+            CRDay = reservations.get(attr.getName()).stream().filter(a -> a.getDay() == day && a.getStatus() == CONFIRMED).toList();
+            for (Reservation reservation : CRDay) {
+                QueryConfirmedModel capacityModel = QueryConfirmedModel.newBuilder()
+                        .setSlot(reservation.getSlot().toString())
+                        .setVisitor(reservation.getVisitorId().toString())
+                        .setAttraction(reservation.getAttractionName())
+                        .build();
+                confirmedList.add(capacityModel);
+            }
         }
-        return CRDay;
+        confirmedList.sort((o1, o2) -> {
+            int diff = o1.getAttraction().compareTo(o2.getAttraction());
+            if(diff == 0) {
+                diff = LocalTime.parse(o1.getSlot()).compareTo(LocalTime.parse(o2.getSlot()));
+                if ((diff) == 0)
+                    diff = o1.getVisitor().compareTo(o2.getVisitor());
+            }
+            return diff;
+        });
+        return confirmedList;
     }
 
     private SlotsReplyModel updateReservations(String name, int day, int capacity){

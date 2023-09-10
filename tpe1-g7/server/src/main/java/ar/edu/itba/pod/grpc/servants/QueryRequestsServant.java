@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -20,28 +21,14 @@ public class QueryRequestsServant extends QueryRequestsServiceGrpc.QueryRequests
     private final static Logger logger = LoggerFactory.getLogger(QueryRequestsServant.class);
     private final ParkRepository repository = ParkRepository.getRepository();
 
-    //TODO: where to sort??
     @Override
     public void getCapacityRequest(QueryRequestModel request, StreamObserver<QueryCapacityModel> responseObserver) {
         int day = request.getDay();
         if(day < 1 || day > 365) {
             responseObserver.onError(Status.INTERNAL.withDescription("Invalid Day").asRuntimeException());
         }
-        List<Reservation> reservationsInDay = repository.getPendingReservationsByDay(day);
-        for (Reservation reservation : reservationsInDay) {
-            Map<LocalTime, Long> acc = reservationsInDay.stream().collect(
-                    Collectors.groupingBy(Reservation::getSlot, Collectors.counting())
-            );
-            //TODO: slots con mismas capacities, me quedo con el mas temprano??
-            LocalTime maxSlot = acc.entrySet().stream().max(Map.Entry.comparingByValue())
-                    .map(Map.Entry::getKey).orElse(null);
-            QueryCapacityModel capacityModel = QueryCapacityModel.newBuilder()
-                    .setSlot(maxSlot.toString())
-                    .setCapacity(acc.get(maxSlot).intValue())
-                    .setAttraction(reservation.getAttractionName())
-                    .build();
-            responseObserver.onNext(capacityModel);
-        }
+        List<QueryCapacityModel> capacityList = repository.getPendingReservationsByDay(day);
+        capacityList.forEach(item -> {responseObserver.onNext(item);});
         responseObserver.onCompleted();
     }
 
@@ -51,15 +38,8 @@ public class QueryRequestsServant extends QueryRequestsServiceGrpc.QueryRequests
         if(day < 1 || day > 365) {
             responseObserver.onError(Status.INTERNAL.withDescription("Invalid Day").asRuntimeException());
         }
-        List<Reservation> reservationsInDay = repository.getConfirmedReservationsByDay(day);
-        for (Reservation reservation : reservationsInDay) {
-            QueryConfirmedModel capacityModel = QueryConfirmedModel.newBuilder()
-                    .setSlot(reservation.getSlot().toString())
-                    .setVisitor(reservation.getVisitorId().toString())
-                    .setAttraction(reservation.getAttractionName())
-                    .build();
-            responseObserver.onNext(capacityModel);
-        }
+        List<QueryConfirmedModel> confirmedList = repository.getConfirmedReservationsByDay(day);
+        confirmedList.forEach(item -> {responseObserver.onNext(item);});
         responseObserver.onCompleted();
     }
 }

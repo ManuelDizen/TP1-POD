@@ -38,13 +38,6 @@ public class QueryClient {
                 QueryRequestModel modelC = QueryRequestModel.newBuilder().setDay(dayC).build();
                 List<QueryCapacityModel> capacityList = new ArrayList<>();
                 req.getCapacityRequest(modelC).forEachRemaining(capacityList::add);
-                //TODO: puedo sortear aca??
-                capacityList.sort((o1, o2) -> {
-                    int diff = o2.getCapacity() - o1.getCapacity();
-                    if(diff == 0)
-                        diff = o1.getAttraction().compareTo(o2.getAttraction());
-                    return diff;
-                });
                 writeCapacityOutput(capacityList, outPath);
                 break;
             case "confirmed":
@@ -52,20 +45,9 @@ public class QueryClient {
                 QueryRequestModel model = QueryRequestModel.newBuilder().setDay(day).build();
                 List<QueryConfirmedModel> confirmedList = new ArrayList<>();
                 req.getConfirmedRequest(model).forEachRemaining(confirmedList::add);
-                //TODO: puedo sortear aca??
-                confirmedList.sort((o1, o2) -> {
-                    int diff = o1.getAttraction().compareTo(o2.getAttraction());
-                    if(diff == 0) {
-                        diff = LocalTime.parse(o1.getSlot()).compareTo(LocalTime.parse(o2.getSlot()));
-                        if ((diff) == 0)
-                            diff = o1.getVisitor().compareTo(o2.getVisitor());
-                    }
-                    return diff;
-                });
                 writeConfirmedOutput(confirmedList, outPath);
                 break;
         }
-
     }
 
     private static void writeCapacityOutput(List<QueryCapacityModel> capacityList, String outPath) {
