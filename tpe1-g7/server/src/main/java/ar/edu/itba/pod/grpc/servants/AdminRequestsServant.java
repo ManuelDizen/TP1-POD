@@ -22,6 +22,7 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
     @Override
     public void addSlotsRequest(SlotsRequestModel request,
                                 StreamObserver<SlotsReplyModel> responseObserver){
+        System.out.println("Hola llegue a addSlotsRequest!!!\n");
         int day = request.getDay();
         int capacity = request.getCapacity();
         String name = request.getRide();
@@ -91,6 +92,7 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
     @Override
     public void addRidesRequest(RidesRequestModel request,
                                 StreamObserver<Int32Value> responseObserver){
+        System.out.println("Entre a addRidesRequest");
         String name = request.getName();
         LocalTime opening = LocalTime.parse(request.getOpening());
         LocalTime closing = LocalTime.parse(request.getClosing());

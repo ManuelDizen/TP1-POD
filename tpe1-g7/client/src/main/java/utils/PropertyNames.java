@@ -12,7 +12,6 @@ public class PropertyNames {
     public static String VISITOR = "visitor";
 
     public static String SLOT = "slot";
-    public static String ATTRACTION = "attraction";
 
     public static String SLOT_FROM = "slotFrom";
 

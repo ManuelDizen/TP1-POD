@@ -39,6 +39,7 @@ public class NotifClient {
                 latch.await();
                 break;
             case "unfollow":
+                System.out.println("4 de septiembre, la llamada que llegaría");
                 model = buildModel(visitorId, attraction, day);
                 NotifRequestsServiceGrpc.NotifRequestsServiceBlockingStub
                         blockingStub = NotifRequestsServiceGrpc.newBlockingStub(channel);

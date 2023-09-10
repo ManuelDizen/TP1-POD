@@ -21,7 +21,6 @@ public class ParsingUtils {
     public static Optional<String> getSystemProperty(String name){
         final String prop = System.getProperty(name);
         if(prop == null){
-            logger.error("Error parsing property of name " + name + ". Now exiting");
             return Optional.empty();
         }
         return Optional.of(prop);
@@ -72,6 +71,7 @@ public class ParsingUtils {
     }
 
     public static PassType getFromString(String name) {
+        System.out.println("Entro a getFromString con: " + "-"+name+"-\n");
         return switch (name) {
             case "UNLIMITED" -> PassType.UNLIMITED;
             case "HALFDAY" -> PassType.HALF_DAY;

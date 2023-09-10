@@ -92,5 +92,13 @@ public class AdminClient {
 
         channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
 
+
+        /*
+        PingRequest request = PingRequest.newBuilder().setName("Hola!!!").build();
+        HealthServiceGrpc.HealthServiceBlockingStub blocking = HealthServiceGrpc.newBlockingStub(channel);
+        PingResponse response = blocking.ping(request);
+        System.out.println(response.getMessage());
+         */
+
     }
 }
