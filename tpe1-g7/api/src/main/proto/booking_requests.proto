@@ -25,6 +25,8 @@ service BookingRequestsService{
 
   rpc CheckAvailability(AvailabilityRequestModel) returns (AvailabilityResponseModel);
 
+  rpc CheckAvailabilityAllAttractions(AvailabilityRequestModel) returns (AvailabilityResponseModel);
+
   rpc BookingRequest(BookRequestModel) returns (ReservationState);
 
   rpc ConfirmBooking(BookRequestModel) returns (ReservationState);

@@ -12,10 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static ar.edu.itba.pod.grpc.models.ReservationStatus.CONFIRMED;
 import static ar.edu.itba.pod.grpc.models.ReservationStatus.PENDING;
@@ -93,6 +90,50 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
                     .setConfirmed(confirmed).build();
             responseList.add(response);
         }
+        responseObserver.onNext(AvailabilityResponseModel.newBuilder().addAllAvailability(responseList).build());
+        responseObserver.onCompleted();
+    }
+
+    public void checkAvailabilityAllAttractions(AvailabilityRequestModel request, StreamObserver<AvailabilityResponseModel> responseObserver) {
+
+        List<AvailabilityResponse> responseList = new ArrayList<>();
+
+        List<Attraction> attractions = repository.getAttractions();
+        int day = request.getDay();
+        if(day < 1 || day > 365){
+            responseObserver.onError(Status.INTERNAL.withDescription("Day is invalid").asRuntimeException());
+        }
+
+        for(Attraction att : attractions) {
+            List<LocalTime> slots = repository.getSlotsInterval(att.getName(), request.getSlotsList());
+
+            Map<Integer, Integer> capacities = att.getCapacities();
+
+            //busco la capacidad para ese día de esa atracción
+            int capacity = 0;
+            if(!capacities.isEmpty())
+                capacity = capacities.get(day);
+
+
+            for(LocalTime s : slots) {
+
+                if(!repository.isValidSlot(att.getName(), s))
+                    responseObserver.onError(Status.INTERNAL.withDescription("Slot is invalid").asRuntimeException());
+
+                int pending = repository.getReservations(att.getName(), day, s, PENDING);
+                int confirmed = repository.getReservations(att.getName(), day, s, CONFIRMED);
+
+                AvailabilityResponse response = AvailabilityResponse.newBuilder().setAttraction(att.getName())
+                        .setSlot(String.valueOf(s))
+                        .setCapacity(capacity)
+                        .setPending(pending)
+                        .setConfirmed(confirmed).build();
+                responseList.add(response);
+            }
+        }
+
+        responseList.sort((p1, p2) -> p1.getSlot().compareTo(p2.getSlot()));
+
         responseObserver.onNext(AvailabilityResponseModel.newBuilder().addAllAvailability(responseList).build());
         responseObserver.onCompleted();
     }

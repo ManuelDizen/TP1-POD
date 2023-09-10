@@ -71,24 +71,26 @@ public class BookingClient {
     private static void checkAvailability(BookingRequestsServiceGrpc.BookingRequestsServiceBlockingStub req) {
 
         int day = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow());
-        Optional<String> attraction = ParsingUtils.getSystemProperty(PropertyNames.RIDE);
-        if(attraction.isEmpty()) {
-            //función para devolver todas las atracciones
+        List<String> slots = new ArrayList<>(){};
+        Optional<String> slot = ParsingUtils.getSystemProperty(PropertyNames.SLOT);
+        if(slot.isEmpty()) {
+            String slotFrom = ParsingUtils.getSystemProperty(PropertyNames.SLOT_FROM).orElseThrow();
+            String slotTo = ParsingUtils.getSystemProperty(PropertyNames.SLOT_TO).orElseThrow();
+            slots.add(slotFrom);
+            slots.add(slotTo);
         } else {
-            Optional<String> slot = ParsingUtils.getSystemProperty(PropertyNames.SLOT);
-            List<String> slots = new ArrayList<>(){};
-            if(slot.isEmpty()) {
-                String slotFrom = ParsingUtils.getSystemProperty(PropertyNames.SLOT_FROM).orElseThrow();
-                String slotTo = ParsingUtils.getSystemProperty(PropertyNames.SLOT_TO).orElseThrow();
-                slots.add(slotFrom);
-                slots.add(slotTo);
-            } else {
-                slots.add(slot.get());
-            }
-            AvailabilityResponseModel response = req.checkAvailability(AvailabilityRequestModel.newBuilder()
-                    .setAttraction(attraction.get()).setDay(day).addAllSlots(slots).build());
-            PrintingUtils.printAvailability(response.getAvailabilityList());
+            slots.add(slot.get());
         }
+        Optional<String> attraction = ParsingUtils.getSystemProperty(PropertyNames.RIDE);
+        AvailabilityResponseModel response;
+        if(attraction.isEmpty()) {
+            response = req.checkAvailabilityAllAttractions(AvailabilityRequestModel.newBuilder()
+                   .setDay(day).addAllSlots(slots).build());
+        } else {
+            response = req.checkAvailability(AvailabilityRequestModel.newBuilder()
+                    .setAttraction(attraction.get()).setDay(day).addAllSlots(slots).build());
+        }
+        PrintingUtils.printAvailability(response.getAvailabilityList());
 
     }
 
