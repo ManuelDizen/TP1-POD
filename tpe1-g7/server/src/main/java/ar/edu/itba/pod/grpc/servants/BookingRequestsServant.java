@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -27,11 +28,14 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
 
     @Override
     public void getAttractionsRequest(Empty request,
-                                      StreamObserver<RidesRequestModel> responseObserver){
+                                      StreamObserver<RidesResponseModel> responseObserver){
 
         //busco las attractions del repository, y las devuelvo
 
         List<Attraction> attractions = repository.getAttractions();
+
+        List<RidesRequestModel> rides = new ArrayList<>();
+
 
         for(Attraction att : attractions) {
             RidesRequestModel ride = RidesRequestModel.newBuilder().setName(att.getName())
@@ -39,8 +43,12 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
                     .setClosing(String.valueOf(att.getClosing()))
                     .setMinsPerSlot(att.getMinsPerSlot())
                     .build();
-            responseObserver.onNext(ride);
+            rides.add(ride);
         }
+
+        RidesResponseModel response = RidesResponseModel.newBuilder().addAllRides(rides).build();
+
+        responseObserver.onNext(response);
         responseObserver.onCompleted();
 
     }
@@ -48,7 +56,7 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
     public void checkAvailability(AvailabilityRequestModel request, StreamObserver<AvailabilityResponseModel> responseObserver) {
 
         String name = request.getAttraction();
-        List<String> slots = request.getSlotsList();
+        List<LocalTime> slots = repository.getSlotsInterval(name, request.getSlotsList());
         int day = request.getDay();
 
 
@@ -60,31 +68,33 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
         if(att == null) {
             responseObserver.onError(Status.NOT_FOUND.withDescription("Ride not found").asRuntimeException());
         }
+
         Map<Integer, Integer> capacities = att.getCapacities();
 
         //busco la capacidad para ese día de esa atracción
         int capacity = 0;
-        if(capacities != null)
+        if(!capacities.isEmpty())
             capacity = capacities.get(day);
 
-        for(String s : slots) {
+        List<AvailabilityResponse> responseList = new ArrayList<>();
 
-            if(repository.isValidSlot(name, LocalTime.parse(s)))
+        for(LocalTime s : slots) {
+
+            if(!repository.isValidSlot(name, s))
                 responseObserver.onError(Status.INTERNAL.withDescription("Slot is invalid").asRuntimeException());
 
-            LocalTime slot = att.getSlot(LocalTime.parse(s));
-            int pending = repository.getReservations(name, day, slot, PENDING);
-            int confirmed = repository.getReservations(name, day, slot, CONFIRMED);
+            int pending = repository.getReservations(name, day, s, PENDING);
+            int confirmed = repository.getReservations(name, day, s, CONFIRMED);
 
-            AvailabilityResponseModel response = AvailabilityResponseModel.newBuilder().setAttraction(name)
-                    .setSlot(String.valueOf(slot))
+            AvailabilityResponse response = AvailabilityResponse.newBuilder().setAttraction(name)
+                    .setSlot(String.valueOf(s))
                     .setCapacity(capacity)
                     .setPending(pending)
                     .setConfirmed(confirmed).build();
-
-            responseObserver.onNext(response);
+            responseList.add(response);
         }
-
+        responseObserver.onNext(AvailabilityResponseModel.newBuilder().addAllAvailability(responseList).build());
+        responseObserver.onCompleted();
     }
 
     @Override

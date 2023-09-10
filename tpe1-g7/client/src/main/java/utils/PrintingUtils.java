@@ -1,6 +1,8 @@
 package utils;
 
-import ar.edu.itba.pod.grpc.requests.SlotsReplyModel;
+import ar.edu.itba.pod.grpc.requests.*;
+
+import java.util.List;
 
 public class PrintingUtils {
 
@@ -12,6 +14,26 @@ public class PrintingUtils {
             System.out.println(model.getRelocated() + " bookings relocated.\n");
         if(model.getCancelled() != 0)
             System.out.println(model.getCancelled() + " bookings cancelled.");
+    }
+
+    public static void printAttractions(List<RidesRequestModel> attractions) {
+
+        System.out.println("Attractions: ");
+
+        for(RidesRequestModel r : attractions) {
+            System.out.println(r.getName() + " : " + r.getOpening() + " - " + r.getClosing());
+        }
+
+    }
+
+    public static void printAvailability(List<AvailabilityResponse> availability) {
+
+        System.out.println("Slot  | Capacity | Pending | Confirmed | Attraction");
+
+        for(AvailabilityResponse a : availability) {
+            System.out.println(a.getSlot() + " |    " +(a.getCapacity() != 0 ? a.getCapacity() : "-") + "    |    " + a.getPending() + "    |    " + a.getConfirmed() + "    | " + a.getAttraction());
+        }
+
     }
 
     public static void printRidesReply(int expected, int actual){

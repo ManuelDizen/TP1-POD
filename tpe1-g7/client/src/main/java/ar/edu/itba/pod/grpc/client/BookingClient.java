@@ -1,19 +1,18 @@
 package ar.edu.itba.pod.grpc.client;
 
-import ar.edu.itba.pod.grpc.requests.BookRequestModel;
-import ar.edu.itba.pod.grpc.requests.BookingRequestsServiceGrpc;
-import ar.edu.itba.pod.grpc.requests.ReservationState;
-import ar.edu.itba.pod.grpc.requests.RidesRequestModel;
+import ar.edu.itba.pod.grpc.requests.*;
 import com.google.protobuf.Empty;
 import io.grpc.ManagedChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.ConnectionUtils;
 import utils.ParsingUtils;
+import utils.PrintingUtils;
 import utils.PropertyNames;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class BookingClient {
 
@@ -30,23 +29,28 @@ public class BookingClient {
         BookingRequestsServiceGrpc.BookingRequestsServiceBlockingStub req =
                 BookingRequestsServiceGrpc.newBlockingStub(channel);
 
-        BookRequestModel model = bookModel();
+        BookRequestModel model;
+
         ReservationState response;
         switch(action) {
             case "attractions":
                 getAllAttractions(req);
                 break;
             case "availability":
+                checkAvailability(req);
                 break;
             case "book":
+                model = bookModel();
                 response = req.bookingRequest(model);
                 System.out.println("God! " + response.getAmount());
                 break;
             case "confirm":
+                model = bookModel();
                 response = req.confirmBooking(model);
                 System.out.println("God! " + response.getAmount());
                 break;
             case "cancel":
+                model = bookModel();
                 response = req.cancelBooking(model);
                 System.out.println("God! " + response.getAmount());
                 break;
@@ -57,10 +61,34 @@ public class BookingClient {
     }
 
     private static void getAllAttractions(BookingRequestsServiceGrpc.BookingRequestsServiceBlockingStub req) {
-        //TODO: Manejar el stream respuesta
 
-        List<RidesRequestModel> attractionList = new ArrayList<>();
-        req.getAttractionsRequest(Empty.getDefaultInstance()).forEachRemaining(attractionList::add);
+        List<RidesRequestModel> attractionList = req.getAttractionsRequest(Empty.getDefaultInstance()).getRidesList();
+
+        PrintingUtils.printAttractions(attractionList);
+
+    }
+
+    private static void checkAvailability(BookingRequestsServiceGrpc.BookingRequestsServiceBlockingStub req) {
+
+        int day = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow());
+        Optional<String> attraction = ParsingUtils.getSystemProperty(PropertyNames.RIDE);
+        if(attraction.isEmpty()) {
+            //función para devolver todas las atracciones
+        } else {
+            Optional<String> slot = ParsingUtils.getSystemProperty(PropertyNames.SLOT);
+            List<String> slots = new ArrayList<>(){};
+            if(slot.isEmpty()) {
+                String slotFrom = ParsingUtils.getSystemProperty(PropertyNames.SLOT_FROM).orElseThrow();
+                String slotTo = ParsingUtils.getSystemProperty(PropertyNames.SLOT_TO).orElseThrow();
+                slots.add(slotFrom);
+                slots.add(slotTo);
+            } else {
+                slots.add(slot.get());
+            }
+            AvailabilityResponseModel response = req.checkAvailability(AvailabilityRequestModel.newBuilder()
+                    .setAttraction(attraction.get()).setDay(day).addAllSlots(slots).build());
+            PrintingUtils.printAvailability(response.getAvailabilityList());
+        }
 
     }
 
@@ -77,35 +105,7 @@ public class BookingClient {
                 .build();
     }
 
-    private static void confirm(BookingRequestsServiceGrpc.BookingRequestsServiceBlockingStub req) {
-        String attraction = ParsingUtils.getSystemProperty(PropertyNames.RIDE).orElseThrow();
-        int day = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow());
-        String time = ParsingUtils.getSystemProperty(PropertyNames.SLOT).orElseThrow();
-        String visitorId = ParsingUtils.getSystemProperty(PropertyNames.VISITOR).orElseThrow();
 
-        BookRequestModel model = BookRequestModel.newBuilder().setName(attraction)
-                .setDay(day)
-                .setTime(time)
-                .setId(visitorId)
-                .build();
-        ReservationState response = req.bookingRequest(model);
-        System.out.println("God! " + response);
-    }
-
-    private static void cancel(BookingRequestsServiceGrpc.BookingRequestsServiceBlockingStub req) {
-        String attraction = ParsingUtils.getSystemProperty(PropertyNames.RIDE).orElseThrow();
-        int day = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow());
-        String time = ParsingUtils.getSystemProperty(PropertyNames.SLOT).orElseThrow();
-        String visitorId = ParsingUtils.getSystemProperty(PropertyNames.VISITOR).orElseThrow();
-
-        BookRequestModel model = BookRequestModel.newBuilder().setName(attraction)
-                .setDay(day)
-                .setTime(time)
-                .setId(visitorId)
-                .build();
-        ReservationState response = req.bookingRequest(model);
-        System.out.println("God! " + response);
-    }
 
 
 }

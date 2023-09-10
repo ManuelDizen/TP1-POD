@@ -13,4 +13,8 @@ public class PropertyNames {
 
     public static String SLOT = "slot";
 
+    public static String SLOT_FROM = "slotFrom";
+
+    public static String SLOT_TO = "slotTo";
+
 }

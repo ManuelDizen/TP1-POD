@@ -94,6 +94,28 @@ public class ParkRepository {
                     reservation, message);
     }
 
+    public List<LocalTime> getSlotsInterval(String name, List<String> slots) {
+
+        Attraction attraction = getAttractionByName(name);
+        List<LocalTime> finalSlots = new ArrayList<>();
+
+        if(slots.size() == 1) {
+            finalSlots.add(attraction.getSlot(LocalTime.parse(slots.get(0))));
+        } else {
+            int i = 0;
+            LocalTime opening = LocalTime.parse(slots.get(0));
+            LocalTime closing = LocalTime.parse(slots.get(1));
+            int minsPerSlot = attraction.getMinsPerSlot();
+            while((opening.plusMinutes((long) minsPerSlot * i)).isBefore(closing) || (opening.plusMinutes((long) minsPerSlot * i)).equals(closing)){
+                finalSlots.add(opening.plusMinutes(minsPerSlot * i));
+                i++;
+            }
+        }
+
+        return finalSlots;
+
+    }
+
     public boolean addReservation(Reservation reservation) {
 
         if(reservation.getStatus() == PENDING) {

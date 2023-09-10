@@ -35,18 +35,26 @@ message RidesRequestModel{
   int32 minsPerSlot = 4;
 }
 
+message RidesResponseModel {
+  repeated RidesRequestModel rides = 1;
+}
+
 message AvailabilityRequestModel {
   string attraction = 1;
   repeated string slots = 2;
   int32 day = 3;
 }
 
-message AvailabilityResponseModel {
+message AvailabilityResponse {
   string attraction = 1;
   string slot = 2;
   int32 capacity = 3;
   int32 pending = 4;
   int32 confirmed = 5;
+}
+
+message AvailabilityResponseModel {
+  repeated AvailabilityResponse availability = 1;
 }
 
 message BookRequestModel {

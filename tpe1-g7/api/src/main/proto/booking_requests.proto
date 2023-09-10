@@ -21,7 +21,7 @@ service BookingRequestsService{
   -cancel
   */
 
-  rpc GetAttractionsRequest(google.protobuf.Empty) returns(stream RidesRequestModel);
+  rpc GetAttractionsRequest(google.protobuf.Empty) returns(RidesResponseModel);
 
   rpc CheckAvailability(AvailabilityRequestModel) returns (AvailabilityResponseModel);
 
