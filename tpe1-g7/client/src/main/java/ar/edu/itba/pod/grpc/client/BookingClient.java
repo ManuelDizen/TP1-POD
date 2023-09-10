@@ -42,17 +42,14 @@ public class BookingClient {
             case "book":
                 model = bookModel();
                 response = req.bookingRequest(model);
-                System.out.println("God! " + response.getAmount());
                 break;
             case "confirm":
                 model = bookModel();
                 response = req.confirmBooking(model);
-                System.out.println("God! " + response.getAmount());
                 break;
             case "cancel":
                 model = bookModel();
                 response = req.cancelBooking(model);
-                System.out.println("God! " + response.getAmount());
                 break;
             default:
                 System.out.println("Invalid action. Please try again.");
@@ -82,6 +79,9 @@ public class BookingClient {
             slots.add(slot.get());
         }
         Optional<String> attraction = ParsingUtils.getSystemProperty(PropertyNames.RIDE);
+            // Nota al lector: La consigna en el testeo usa "-Dattraction=..." en vez de "ride". Asumimos que fue
+            // un error de redacción.
+
         AvailabilityResponseModel response;
         if(attraction.isEmpty()) {
             response = req.checkAvailabilityAllAttractions(AvailabilityRequestModel.newBuilder()

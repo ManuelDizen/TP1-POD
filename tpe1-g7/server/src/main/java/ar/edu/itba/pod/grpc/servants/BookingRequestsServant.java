@@ -141,8 +141,6 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
     @Override
     public void bookingRequest(BookRequestModel request, StreamObserver<ReservationState> responseObserver) {
 
-        System.out.println("estoy en book");
-
         int day = request.getDay();
         UUID id = UUID.fromString(request.getId());
         String attraction = request.getName();
@@ -151,7 +149,6 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
         LocalTime slot = checkBookingParameters(attraction, day, time, id, responseObserver);
 
         if(!repository.attractionHasCapacityAlready(attraction, day)) {
-            System.out.println("no hay capacidad");
             if(repository.addReservation(new Reservation(attraction, day, id, slot, PENDING))) {
                 responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.PENDING).build());
                 responseObserver.onCompleted();

@@ -8,6 +8,7 @@ import ar.edu.itba.pod.grpc.models.ReservationStatus;
 import ar.edu.itba.pod.grpc.requests.QueryCapacityModel;
 import ar.edu.itba.pod.grpc.requests.QueryConfirmedModel;
 import ar.edu.itba.pod.grpc.requests.SlotsReplyModel;
+import org.checkerframework.checker.units.qual.K;
 
 import java.time.LocalTime;
 import java.util.*;
@@ -46,18 +47,20 @@ public class ParkRepository {
         Attraction att = getAttractionByName(name);
         att.getCapacities().put(day, capacity); //Validations have been done so that attraction does not have capacity yet that day
         att.initializeSlots(day, capacity);
-        //updateReservations(name, day, capacity);
+        printRepositoryStatus();
         return updateReservations(name, day, capacity);
     }
 
     public synchronized Attraction addRide(Attraction att){
         attractions.add(att);
         reservations.put(att.getName(), new ArrayList<>());
+        printRepositoryStatus();
         return att;
     }
 
     public synchronized boolean addPass(AttractionPass pass){
         passes.add(pass);
+        printRepositoryStatus();
         return true;
     }
 
@@ -138,7 +141,7 @@ public class ParkRepository {
             slots.put(reservation.getSlot(), capacity);
             manageNotifications(reservation);
         }
-
+        printRepositoryStatus();
         return true;
 
     }
@@ -209,14 +212,11 @@ public class ParkRepository {
     private SlotsReplyModel updateReservations(String name, int day, int capacity){
         int confirmed = 0, cancelled = 0, relocated = 0;
 
-        System.out.println("en updateReservations");
-
         //Method called when an attraction receives a capacity so that it confirms/denies/relocates reservations
         List<Reservation> attReservs = new ArrayList<>(reservations.get(name).stream()
                 .filter(r -> r.getDay() == day && r.getStatus() == PENDING)
                 .toList());
 
-        System.out.println("Reservations para " + name + ": ");
         attReservs.sort((new Comparator<Reservation>() {
             @Override
             public int compare(Reservation o1, Reservation o2) {
@@ -239,7 +239,6 @@ public class ParkRepository {
 
             if(vacants > 0){
                 // Tengo lugar para la reserva pedida. Confirmo, y bajo capacidad en mapa
-                System.out.println("slot: " + prevSlot + " - vacants: " + vacants);
                 r.setStatus(ReservationStatus.CONFIRMED);
                 capacities.put(prevSlot, capacities.get(r.getSlot()) - 1);
                 confirmed++;
@@ -247,7 +246,6 @@ public class ParkRepository {
             else{
                 // Si no hay lugar, tengo que buscar el primer slot disponible posterior a este para confirmarla
                 // Si no encuentro slot, la cancelo
-                System.out.println("no hay vacants para slot :" + prevSlot);
                 LocalTime firstAvailable = null;
                 TreeSet<LocalTime> keySet = new TreeSet<>(capacities.keySet());
                 List<LocalTime> orderedKeys = new ArrayList<>(keySet).stream()
@@ -259,7 +257,6 @@ public class ParkRepository {
                         break;
                     }
                 }
-                System.out.println("first available: " + firstAvailable);
                 if(firstAvailable != null){
                     //TODO IMPORTANTE: Si pase es de medio dia, y la reserva se mueve para después, SE CANCELA
                     r.setStatus(PENDING);
@@ -314,7 +311,7 @@ public class ParkRepository {
                 found++;
             }
         }
-
+        printRepositoryStatus();
         return found;
     }
 
@@ -348,6 +345,25 @@ public class ParkRepository {
 
     public boolean isValidDay(int day){
         return day > 0 && day <= 365;
+    }
+
+    public void printRepositoryStatus(){
+        System.out.println("Attractions\n");
+        for(Attraction a : attractions){
+            System.out.println(a.getName() + " | " + a.getOpening() + " | " + a.getMinsPerSlot());
+            for(Map.Entry<Integer, Integer> i : a.getCapacities().entrySet()){
+                System.out.println("Day " + i.getKey() + ", Value " + i.getValue());
+            }
+        }
+        System.out.println("\nPasses\n");
+        for(AttractionPass p : passes){
+            System.out.println(p.getDay() + " | " + p.getType() + " | " + p.getVisitor());
+        }
+        System.out.println("\nReservations\n");
+        for(List<Reservation> r : reservations.values()){
+            for(Reservation p : r)
+                System.out.println(p.getStatus() + " | " + p.getDay() + " | " + p.getVisitorId());
+        }
     }
 
 }
