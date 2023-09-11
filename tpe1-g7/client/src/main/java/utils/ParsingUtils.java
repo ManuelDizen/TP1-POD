@@ -71,7 +71,7 @@ public class ParsingUtils {
     }
 
     public static PassType getFromString(String name) {
-        System.out.println("Entro a getFromString con: " + "-"+name+"-\n");
+
         return switch (name) {
             case "UNLIMITED" -> PassType.UNLIMITED;
             case "HALFDAY" -> PassType.HALF_DAY;
