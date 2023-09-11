@@ -18,6 +18,7 @@ public class BookingClient {
 
     private static final Logger logger = LoggerFactory.getLogger(BookingClient.class);
 
+
     public static void main(String[] args) throws InterruptedException {
         logger.info("BookingClient starting...");
 
@@ -42,12 +43,12 @@ public class BookingClient {
             case "book":
                 model = bookModel();
                 response = req.bookingRequest(model);
-                System.out.println("God! " + response.getAmount());
+                System.out.println("The reservation for " + response.getAttraction() +  " at " + response.getSlot() + " on the day " + response.getDay() + " is " + response.getStatus());
                 break;
             case "confirm":
                 model = bookModel();
                 response = req.confirmBooking(model);
-                System.out.println("God! " + response.getAmount());
+                ;
                 break;
             case "cancel":
                 model = bookModel();

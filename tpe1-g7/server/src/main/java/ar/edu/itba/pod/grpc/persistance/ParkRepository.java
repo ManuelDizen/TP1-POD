@@ -14,6 +14,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static ar.edu.itba.pod.grpc.models.ReservationStatus.*;
+import static ar.edu.itba.pod.grpc.requests.PassType.THREE;
 
 public class ParkRepository {
     private final List<Attraction> attractions = new ArrayList<>();
@@ -139,8 +140,17 @@ public class ParkRepository {
             manageNotifications(reservation);
         }
 
+        AttractionPass pass = getAttractionPass(reservation.getVisitorId(), reservation.getDay());
+        if(pass.getType() == THREE) {
+            pass.rideConsumption();
+        }
         return true;
 
+    }
+
+    public AttractionPass getAttractionPass(UUID visitorId, int day) {
+        return passes.stream().filter(a -> a.getVisitor().equals(visitorId) && a.getDay() == day)
+                .findFirst().orElseThrow();
     }
 
     public int getReservations(String attraction, int day, LocalTime slot, ReservationStatus status) {
@@ -296,6 +306,9 @@ public class ParkRepository {
     }
 
     public int cancelReservation(String attraction, int day, LocalTime slot, UUID visitorId) {
+        AttractionPass pass = getAttractionPass(visitorId, day);
+        if(pass.getType() == THREE)
+            pass.cancelConsumption();
         return setReservationStatus(attraction, day, slot, visitorId, new ArrayList<>(List.of(PENDING, CONFIRMED)), CANCELLED);
     }
 
@@ -342,8 +355,9 @@ public class ParkRepository {
     }
 
     public int getRemainingCapacity(String name, int day, LocalTime slot) {
-        //TODO!!
-        return 0;
+        Map<LocalTime, Integer> slots = repository.getAttractionByName(name).getSpaceAvailable().get(day);
+        System.out.println("jdfgjdsfg " + slots.get(slot));
+        return slots.get(slot);
     }
 
     public boolean isValidDay(int day){
