@@ -48,12 +48,12 @@ public class BookingClient {
             case "confirm":
                 model = bookModel();
                 response = req.confirmBooking(model);
-                ;
+                System.out.println("The reservation for " + response.getAttraction() +  " at " + response.getSlot() + " on the day " + response.getDay() + " is " + response.getStatus());
                 break;
             case "cancel":
                 model = bookModel();
                 response = req.cancelBooking(model);
-                System.out.println("God! " + response.getAmount());
+                System.out.println("The reservation for " + response.getAttraction() +  " at " + response.getSlot() + " on the day " + response.getDay() + " is " + response.getStatus());
                 break;
             default:
                 System.out.println("Invalid action. Please try again.");

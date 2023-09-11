@@ -31,7 +31,7 @@ public class PrintingUtils {
         System.out.println("Slot  | Capacity | Pending | Confirmed | Attraction");
 
         for(AvailabilityResponse a : availability) {
-            System.out.println(a.getSlot() + " |    " +(a.getCapacity() != 0 ? a.getCapacity() : "-") + "    |    " + a.getPending() + "    |    " + a.getConfirmed() + "    | " + a.getAttraction());
+            System.out.println(a.getSlot() + " |    " +(a.getCapacity() != 0 ? a.getCapacity() : "X") + "    |    " + a.getPending() + "    |    " + a.getConfirmed() + "    | " + a.getAttraction());
         }
 
     }

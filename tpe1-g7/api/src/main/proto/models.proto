@@ -82,10 +82,9 @@ message QueryConfirmedModel {
 
 message ReservationState {
   ResStatus status = 1;
-  int32 amount = 2;
-  int32 day = 3;
-  string attraction = 4;
-  string slot = 5;
+  int32 day = 2;
+  string attraction = 3;
+  string slot = 4;
 }
 
 

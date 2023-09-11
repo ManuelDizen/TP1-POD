@@ -53,45 +53,50 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
     public void checkAvailability(AvailabilityRequestModel request, StreamObserver<AvailabilityResponseModel> responseObserver) {
 
         String name = request.getAttraction();
-        List<LocalTime> slots = repository.getSlotsInterval(name, request.getSlotsList());
-        int day = request.getDay();
-
-
-        if(day < 1 || day > 365){
-            responseObserver.onError(Status.INTERNAL.withDescription("Day is invalid").asRuntimeException());
-        }
-
         Attraction att = repository.getAttractionByName(name);
         if(att == null) {
             responseObserver.onError(Status.NOT_FOUND.withDescription("Ride not found").asRuntimeException());
+        } else {
+            int day = request.getDay();
+
+            if(day < 1 || day > 365){
+                responseObserver.onError(Status.INTERNAL.withDescription("Day is invalid").asRuntimeException());
+            } else {
+                if(!checkSlots(name, request.getSlotsList())) {
+                    responseObserver.onError(Status.INTERNAL.withDescription("Invalid slot").asRuntimeException());
+                } else {
+                    List<LocalTime> slots = repository.getSlotsInterval(name, request.getSlotsList());
+                    Map<Integer, Integer> capacities = att.getCapacities();
+
+                    //busco la capacidad para ese día de esa atracción
+                    int capacity = 0;
+                    if (!capacities.isEmpty())
+                        capacity = capacities.get(day);
+
+                    List<AvailabilityResponse> responseList = new ArrayList<>();
+
+                    for (LocalTime s : slots) {
+
+                        if (!repository.isValidSlot(name, s))
+                            responseObserver.onError(Status.INTERNAL.withDescription("Slot is invalid").asRuntimeException());
+
+                        int pending = repository.getReservations(name, day, s, PENDING);
+                        int confirmed = repository.getReservations(name, day, s, CONFIRMED);
+
+                        AvailabilityResponse response = AvailabilityResponse.newBuilder().setAttraction(name)
+                                .setSlot(String.valueOf(s))
+                                .setCapacity(capacity)
+                                .setPending(pending)
+                                .setConfirmed(confirmed).build();
+                        responseList.add(response);
+                    }
+                    responseObserver.onNext(AvailabilityResponseModel.newBuilder().addAllAvailability(responseList).build());
+                    responseObserver.onCompleted();
+                }
+            }
+
         }
 
-        Map<Integer, Integer> capacities = att.getCapacities();
-
-        //busco la capacidad para ese día de esa atracción
-        int capacity = 0;
-        if(!capacities.isEmpty())
-            capacity = capacities.get(day);
-
-        List<AvailabilityResponse> responseList = new ArrayList<>();
-
-        for(LocalTime s : slots) {
-
-            if(!repository.isValidSlot(name, s))
-                responseObserver.onError(Status.INTERNAL.withDescription("Slot is invalid").asRuntimeException());
-
-            int pending = repository.getReservations(name, day, s, PENDING);
-            int confirmed = repository.getReservations(name, day, s, CONFIRMED);
-
-            AvailabilityResponse response = AvailabilityResponse.newBuilder().setAttraction(name)
-                    .setSlot(String.valueOf(s))
-                    .setCapacity(capacity)
-                    .setPending(pending)
-                    .setConfirmed(confirmed).build();
-            responseList.add(response);
-        }
-        responseObserver.onNext(AvailabilityResponseModel.newBuilder().addAllAvailability(responseList).build());
-        responseObserver.onCompleted();
     }
 
     public void checkAvailabilityAllAttractions(AvailabilityRequestModel request, StreamObserver<AvailabilityResponseModel> responseObserver) {
@@ -102,40 +107,55 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
         int day = request.getDay();
         if(day < 1 || day > 365){
             responseObserver.onError(Status.INTERNAL.withDescription("Day is invalid").asRuntimeException());
-        }
+        } else {
+            for(Attraction att : attractions) {
+                List<LocalTime> slots = repository.getSlotsInterval(att.getName(), request.getSlotsList());
 
-        for(Attraction att : attractions) {
-            List<LocalTime> slots = repository.getSlotsInterval(att.getName(), request.getSlotsList());
+                Map<Integer, Integer> capacities = att.getCapacities();
 
-            Map<Integer, Integer> capacities = att.getCapacities();
-
-            //busco la capacidad para ese día de esa atracción
-            int capacity = 0;
-            if(!capacities.isEmpty())
-                capacity = capacities.get(day);
+                //busco la capacidad para ese día de esa atracción
+                int capacity = 0;
+                if(!capacities.isEmpty())
+                    capacity = capacities.get(day);
 
 
-            for(LocalTime s : slots) {
+                for(LocalTime s : slots) {
 
-                if(!repository.isValidSlot(att.getName(), s))
-                    responseObserver.onError(Status.INTERNAL.withDescription("Slot is invalid").asRuntimeException());
+                    if(!repository.isValidSlot(att.getName(), s))
+                        responseObserver.onError(Status.INTERNAL.withDescription("Slot is invalid").asRuntimeException());
 
-                int pending = repository.getReservations(att.getName(), day, s, PENDING);
-                int confirmed = repository.getReservations(att.getName(), day, s, CONFIRMED);
+                    int pending = repository.getReservations(att.getName(), day, s, PENDING);
+                    int confirmed = repository.getReservations(att.getName(), day, s, CONFIRMED);
 
-                AvailabilityResponse response = AvailabilityResponse.newBuilder().setAttraction(att.getName())
-                        .setSlot(String.valueOf(s))
-                        .setCapacity(capacity)
-                        .setPending(pending)
-                        .setConfirmed(confirmed).build();
-                responseList.add(response);
+                    AvailabilityResponse response = AvailabilityResponse.newBuilder().setAttraction(att.getName())
+                            .setSlot(String.valueOf(s))
+                            .setCapacity(capacity)
+                            .setPending(pending)
+                            .setConfirmed(confirmed).build();
+                    responseList.add(response);
+                }
             }
+
+            responseList.sort((p1, p2) -> {
+                int c = p1.getSlot().compareTo(p2.getSlot());
+                if (c == 0) {
+                    return (p1.getAttraction().compareTo(p2.getAttraction()));
+                } else {
+                    return c;
+                }
+            });
+
+            responseObserver.onNext(AvailabilityResponseModel.newBuilder().addAllAvailability(responseList).build());
+            responseObserver.onCompleted();
         }
+    }
 
-        responseList.sort((p1, p2) -> p1.getSlot().compareTo(p2.getSlot()));
-
-        responseObserver.onNext(AvailabilityResponseModel.newBuilder().addAllAvailability(responseList).build());
-        responseObserver.onCompleted();
+    private boolean checkSlots(String att, List<String> slots) {
+        for(String slot : slots) {
+            if(!repository.isValidSlot(att, LocalTime.parse(slot)))
+                return false;
+        }
+        return true;
     }
 
     @Override
@@ -159,7 +179,7 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
                             .setAttraction(attraction).setDay(day).setSlot(String.valueOf(slot)).build());
                     responseObserver.onCompleted();
                 } else
-                    bookOnError("Reservation already exists", "Internal", responseObserver);
+                    bookOnError("Reservation already exists", "Already exists", responseObserver);
             } else {
                 int capacity = repository.getRemainingCapacity(attraction, day, slot);
 
@@ -194,17 +214,19 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
 
         if(checkBookingParameters(attraction, day, time, id, responseObserver)) {
             LocalTime slot = repository.getAttractionByName(attraction).getSlot(time);
+            Reservation reservation = repository.getReservation(attraction, day, slot, id);
             if(!repository.attractionHasCapacityAlready(attraction, day)) {
-                bookOnError("Ride not available", "Internal", responseObserver);
+                bookOnError("Ride has no capacity yet", "Internal", responseObserver);
             }
 
-            int amount = repository.confirmReservation(attraction, day, slot, id);
-
-            if(amount <= 0)
-                bookOnError("Reservation not found", "Not found", responseObserver);
-
-            responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.CONFIRMED).setAmount(amount).build());
-            responseObserver.onCompleted();
+            if(!repository.confirmReservation(reservation))
+                bookOnError("No pending reservations found", "Not found", responseObserver);
+            else {
+                repository.manageNotifications(reservation);
+                responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.CONFIRMED).
+                        setAttraction(attraction).setDay(day).setSlot(String.valueOf(slot)).build());
+                responseObserver.onCompleted();
+            }
         }
 
     }
@@ -219,18 +241,16 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
 
         if(checkBookingParameters(attraction, day, time, id, responseObserver)) {
             LocalTime slot = repository.getAttractionByName(attraction).getSlot(time);
-            int amount = repository.cancelReservation(attraction, day, slot, id);
-
-            if (amount <= 0)
+            Reservation reservation = repository.getReservation(attraction, day, slot, id);
+            if (!repository.cancelReservation(reservation))
                 bookOnError("Reservation not found", "Not found", responseObserver);
-
-            responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.CANCELLED).setAmount(amount).build());
-            responseObserver.onCompleted();
+            else {
+                repository.manageNotifications(reservation);
+                responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.CANCELLED)
+                        .setAttraction(attraction).setDay(day).setSlot(String.valueOf(slot)).build());
+                responseObserver.onCompleted();
+            }
         }
-
-
-
-
 
     }
 
@@ -270,6 +290,9 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
                 break;
             case "Not found":
                 responseObserver.onError(Status.NOT_FOUND.withDescription(errMsg).asRuntimeException());
+                break;
+            case "Already exists":
+                responseObserver.onError(Status.ALREADY_EXISTS.withDescription(errMsg).asRuntimeException());
                 break;
             default:
                 responseObserver.onError(Status.INTERNAL.withDescription(errMsg).asRuntimeException());
