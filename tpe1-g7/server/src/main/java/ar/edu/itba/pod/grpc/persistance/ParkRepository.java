@@ -9,18 +9,30 @@ import ar.edu.itba.pod.grpc.requests.QueryCapacityModel;
 import ar.edu.itba.pod.grpc.requests.QueryConfirmedModel;
 import ar.edu.itba.pod.grpc.requests.SlotsReplyModel;
 
+
 import java.time.LocalTime;
 import java.util.*;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 import static ar.edu.itba.pod.grpc.models.ReservationStatus.*;
 import static ar.edu.itba.pod.grpc.requests.PassType.THREE;
+import static ar.edu.itba.pod.grpc.utils.LockUtils.*;
 
 public class ParkRepository {
     private final List<Attraction> attractions = new ArrayList<>();
     private final List<AttractionPass> passes = new ArrayList<>();
     private final Map<String, List<Reservation>> reservations = new HashMap<>();
     private static ParkRepository repository;
+
+    private static final boolean fairness4locks = true; //Activates a pseudoorder so that writer threads
+                                                        // do not get blocked eternally
+
+    private static ReadWriteLock attrLock = new ReentrantReadWriteLock(fairness4locks);
+    private static ReadWriteLock passLock = new ReentrantReadWriteLock(fairness4locks);
+    private static ReadWriteLock reservsLock = new ReentrantReadWriteLock(fairness4locks);
+
 
     public static ParkRepository getRepository(){
         if(repository == null){
@@ -30,40 +42,60 @@ public class ParkRepository {
     }
 
     public boolean attractionExists(String name){
-        return attractions.stream().anyMatch(a -> name.equals(a.getName()));
+        lockRead(attrLock);
+        boolean exists = attractions.stream().anyMatch(a -> name.equals(a.getName()));
+        unlockRead(attrLock);
+        return exists;
     }
 
     public boolean attractionHasCapacityAlready(String name, int day){
+        boolean has = false;
+        lockRead(attrLock);
         if(attractionExists(name)){
             Optional<Attraction> att = attractions.stream().filter(a -> name.equals(a.getName())).findFirst();
-            return att.map(attraction -> attraction.getSpaceAvailable().containsKey(day)).orElse(false);
+            lockRead(att.get().getSpacesLock()); //TODO pass to attraction class
+            has = att.map(attraction -> attraction.getSpaceAvailable().containsKey(day)).orElse(false);
+            unlockRead(att.get().getSpacesLock());
         }
-        return false;
+        unlockRead(attrLock);
+        return has;
     }
 
     //Con att, dia y capacidad, genera la capcaidad para todos los slots de ese día. Hace falta validar
     // las reservas en espera, y confirmarlas/cancelarlas/reubicarlas.
     public synchronized SlotsReplyModel addSlots(String name, int day, int capacity){
         Attraction att = getAttractionByName(name);
+        lockWrite(att.getCapacitiesLock()); //TODO pass to attraction class
         att.getCapacities().put(day, capacity); //Validations have been done so that attraction does not have capacity yet that day
+        unlockWrite(att.getCapacitiesLock());
         att.initializeSlots(day, capacity);
         //updateReservations(name, day, capacity);
         return updateReservations(name, day, capacity);
     }
 
     public synchronized Attraction addRide(Attraction att){
+        lockWrite(attrLock);
         attractions.add(att);
+        unlockWrite(attrLock);
+
+        lockWrite(reservsLock);
         reservations.put(att.getName(), new ArrayList<>());
+        unlockWrite(reservsLock);
+
         return att;
     }
 
     public synchronized boolean addPass(AttractionPass pass){
+        lockWrite(passLock);
         passes.add(pass);
+        unlockWrite(passLock);
         return true;
     }
 
     public Attraction getAttractionByName(String name){
+        lockRead(attrLock);
         Optional<Attraction> att = attractions.stream().filter(a -> name.equals(a.getName())).findFirst();
+        unlockRead(attrLock);
         return att.orElse(null);
 
     }
@@ -74,8 +106,11 @@ public class ParkRepository {
     }
 
     public boolean visitorHasPass(UUID id, int day){
-        return isValidDay(day) &&
+        lockRead(passLock);
+        boolean valid = isValidDay(day) &&
                 passes.stream().anyMatch(a -> a.getVisitor().equals(id) && a.getDay()==day);
+        unlockRead(passLock);
+        return valid;
     }
 
     public List<Attraction> getAttractions() {
@@ -120,23 +155,40 @@ public class ParkRepository {
     public boolean addReservation(Reservation reservation) {
 
         if(reservation.getStatus() == PENDING) {
+            lockRead(reservsLock);
             List<Reservation> pendingReservations = reservations.get(reservation.getAttractionName());
             if(pendingReservations.contains(reservation)) {
                 return false;
             }
+            unlockRead(reservsLock);
+
+            lockWrite(reservsLock);
             pendingReservations.add(reservation);
             reservations.put(reservation.getAttractionName(), pendingReservations);
+            unlockWrite(reservsLock);
+
             manageNotifications(reservation);
 
         } else if(reservation.getStatus() == CONFIRMED) {
             //me busco el mapa Map<Horario, Capacidad> de la atracción para ese día
-            Map<LocalTime, Integer> slots = repository.getAttractionByName(reservation.getAttractionName()).getSpaceAvailable().get(reservation.getDay());
+            //TODO: Acá que variable necesito cuidar? Reservations?
+            Attraction att = getAttractionByName(reservation.getAttractionName());
+            Map<LocalTime, Integer> slots = att.getSpaceAvailable().get(reservation.getDay());
+            /*TODO creo que esta linea de arriba no termina de proteger
+            1) Traigo spaceAvailsble pero largo el lock, por lo que alguien puede escribir
+            2) Lo uso aca para updatear slots en base a eso
+
+            Creo que lo mejor sería traerlo y quedarme con el lock, y devolverlo una vez que tenga que escribir
+            Sigo con otras cuestiones
+             */
             Integer capacity = slots.get(reservation.getSlot());
             if(capacity < 0) {
                 return false;
             }
             capacity--;
-            slots.put(reservation.getSlot(), capacity);
+            att.updateSlots(reservation.getDay(), reservation.getSlot(), capacity);
+            //Esto lo cambie para mantener integridad con los locks
+
             manageNotifications(reservation);
         }
 
@@ -149,23 +201,41 @@ public class ParkRepository {
     }
 
     public AttractionPass getAttractionPass(UUID visitorId, int day) {
-        return passes.stream().filter(a -> a.getVisitor().equals(visitorId) && a.getDay() == day)
+        lockRead(passLock);
+        AttractionPass pass = passes.stream().filter(a -> a.getVisitor().equals(visitorId) && a.getDay() == day)
                 .findFirst().orElseThrow();
+        unlockRead(passLock);
+        return pass;
     }
 
     public Reservation getReservation(String attraction, int day, LocalTime slot, UUID visitorId) {
-        return reservations.get(attraction).stream().filter(a -> a.getDay() == day && a.getSlot().equals(slot) && a.getVisitorId().equals(visitorId)).findFirst().orElseThrow();
+        lockRead(reservsLock);
+        Reservation r = reservations.get(attraction).stream().filter(a -> a.getDay() == day && a.getSlot().equals(slot) && a.getVisitorId().equals(visitorId)).findFirst().orElseThrow();
+        unlockRead(reservsLock);
+        return r; //TODO esta forma de hacerlo no se si me convence. Pienso en que uno podría:
+        /*
+        1) Lockea el read (nadie modifica)
+        2) Consigue reserva
+        3) Deslocka el read
+        4) Inmediatamente después entra alguien a modificar la reserva y yo me quede con la referencia de la reserva con un estado
+        cuando inmediatamente después puede cambiar. Es decir, no se si es algo solucionable, pero me deja pensando.
+         */
     }
 
     public int getReservations(String attraction, int day, LocalTime slot, ReservationStatus status) {
+        lockRead(reservsLock);
         List<Reservation> reservationsForAttraction = reservations.get(attraction);
-        return (int) reservationsForAttraction.stream().filter(a ->  a.getDay() == day && a.getSlot().equals(slot) && a.getStatus() == status).count();
+        int n = (int) reservationsForAttraction.stream()
+                .filter(a ->  a.getDay() == day && a.getSlot().equals(slot) && a.getStatus() == status).count();
+        unlockRead(reservsLock);
+        return n;
     }
 
     public List<QueryCapacityModel> getPendingReservationsByDay(int day) {
         List<Attraction> attractionList = getAttractions();
         List<Reservation> PRDay;
         List<QueryCapacityModel> capacityList = new ArrayList<>();
+        lockRead(reservsLock);
         for (Attraction attr : attractionList) {
             if (!attractionHasCapacityAlready(attr.getName(), day)) {
                 PRDay = reservations.get(attr.getName()).stream().filter(a -> a.getDay() == day && a.getStatus() == PENDING).toList();
@@ -184,12 +254,13 @@ public class ParkRepository {
                 }
             }
         }
+        unlockRead(reservsLock);
         capacityList.sort((o1, o2) -> {
             int diff = o2.getCapacity() - o1.getCapacity();
             if(diff == 0)
                 diff = o1.getAttraction().compareTo(o2.getAttraction());
             return diff;
-        });
+        }); //TODO CAMBIAR POR ORDEN DE CONFIRMACIÓN
         return capacityList;
     }
 
@@ -197,6 +268,7 @@ public class ParkRepository {
         List<Attraction> attractionList = getAttractions();
         List<Reservation> CRDay;
         List<QueryConfirmedModel> confirmedList = new ArrayList<>();
+        lockRead(reservsLock);
         for (Attraction attr : attractionList) {
             CRDay = reservations.get(attr.getName()).stream().filter(a -> a.getDay() == day && a.getStatus() == CONFIRMED).toList();
             for (Reservation reservation : CRDay) {
@@ -208,6 +280,7 @@ public class ParkRepository {
                 confirmedList.add(capacityModel);
             }
         }
+        unlockRead(reservsLock);
         confirmedList.sort((o1, o2) -> {
             int diff = o1.getAttraction().compareTo(o2.getAttraction());
             if(diff == 0) {
@@ -221,25 +294,15 @@ public class ParkRepository {
     }
 
     private SlotsReplyModel updateReservations(String name, int day, int capacity){
+        //TODO LOCKSSSSSS!!!!!!!!!!!!!!!!!
         int confirmed = 0, cancelled = 0, relocated = 0;
-
-        System.out.println("en updateReservations");
 
         //Method called when an attraction receives a capacity so that it confirms/denies/relocates reservations
         List<Reservation> attReservs = new ArrayList<>(reservations.get(name).stream()
                 .filter(r -> r.getDay() == day && r.getStatus() == PENDING)
                 .toList());
 
-        System.out.println("Reservations para " + name + ": ");
-        attReservs.sort((new Comparator<Reservation>() {
-            @Override
-            public int compare(Reservation o1, Reservation o2) {
-                return o1.getCreatedAt().compareTo(o2.getCreatedAt());
-            }
-        }));
-
-        for(Reservation res : attReservs)
-            System.out.println(res.getDay() + " - " + res.getSlot());
+        attReservs.sort((Comparator.comparing(Reservation::getCreatedAt)));
 
         //Tengo las reservas del día que todavía estan pendientes (es decir, las otras que estaban para ese dia
         // estan confirmadas o canceladas).
@@ -253,7 +316,6 @@ public class ParkRepository {
 
             if(vacants > 0){
                 // Tengo lugar para la reserva pedida. Confirmo, y bajo capacidad en mapa
-                System.out.println("slot: " + prevSlot + " - vacants: " + vacants);
                 r.setStatus(ReservationStatus.CONFIRMED);
                 capacities.put(prevSlot, capacities.get(r.getSlot()) - 1);
                 confirmed++;
@@ -261,7 +323,6 @@ public class ParkRepository {
             else{
                 // Si no hay lugar, tengo que buscar el primer slot disponible posterior a este para confirmarla
                 // Si no encuentro slot, la cancelo
-                System.out.println("no hay vacants para slot :" + prevSlot);
                 LocalTime firstAvailable = null;
                 TreeSet<LocalTime> keySet = new TreeSet<>(capacities.keySet());
                 List<LocalTime> orderedKeys = new ArrayList<>(keySet).stream()
@@ -363,13 +424,12 @@ public class ParkRepository {
     }
 
     public int getRemainingCapacity(String name, int day, LocalTime slot) {
-        Map<LocalTime, Integer> slots = repository.getAttractionByName(name).getSpaceAvailable().get(day);
-        System.out.println("jdfgjdsfg " + slots.get(slot));
-        return slots.get(slot);
+        Map<LocalTime, Integer> slots = repository.getAttractionByName(name).getSpaceAvailable().get(day);return slots.get(slot);
     }
 
     public boolean isValidDay(int day){
         return day > 0 && day <= 365;
     }
+
 
 }

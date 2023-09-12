@@ -12,6 +12,7 @@ public class Reservation {
     private LocalTime slot;
     private ReservationStatus status;
     private final LocalDateTime createdAt;
+    private LocalDateTime confirmedAt = null;
 
 
     public Reservation(String attractionName, int day, UUID visitorId, LocalTime slot, ReservationStatus status) {
@@ -66,5 +67,13 @@ public class Reservation {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public LocalDateTime getConfirmedAt() {
+        return confirmedAt;
+    }
+
+    public void setConfirmedAt(LocalDateTime confirmedAt) {
+        this.confirmedAt = confirmedAt;
     }
 }
