@@ -84,7 +84,7 @@ public class Attraction {
     public boolean checkToNotify(Reservation reservation){
         return followers.stream()
                 .anyMatch(
-                        a -> a.getDay() == reservation.getDay() && a.getVisitorId() == reservation.getVisitorId()
+                        a -> a.getDay() == reservation.getDay() && a.getVisitorId().equals(reservation.getVisitorId())
                 );
     }
 
@@ -104,12 +104,12 @@ public class Attraction {
     }
 
     public void notifyReservation(int day, UUID id, Reservation r){
-        Follower f = followers.stream().filter(a -> a.getDay() == day && a.getVisitorId() == id).findFirst().orElseThrow(); // No debería pasar
+        Follower f = followers.stream().filter(a -> a.getDay() == day && a.getVisitorId().equals(id)).findFirst().orElseThrow(); // No debería pasar
         f.sendMessage("The reservation for " + this.getName() + " at " + r.getSlot().toString() +
                 " on the day " + day + " is " + r.getStatus().toString());
     }
     public void notifyReservation(int day, UUID id, Reservation r, String message){
-        Follower f = followers.stream().filter(a -> a.getDay() == day && a.getVisitorId() == id).findFirst().orElseThrow(); // No debería pasar
+        Follower f = followers.stream().filter(a -> a.getDay() == day && a.getVisitorId().equals(id)).findFirst().orElseThrow(); // No debería pasar
         f.sendMessage(message);
     }
 }

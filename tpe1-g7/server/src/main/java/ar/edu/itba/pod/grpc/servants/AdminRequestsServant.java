@@ -35,17 +35,17 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
         */
 
         if(day < 1 || day > 365){
-            responseObserver.onError(Status.INTERNAL.withDescription("Unknown error").asRuntimeException());
+            responseObserver.onError(Status.INTERNAL.withDescription("Day is invalid").asRuntimeException());
 
             //returnOnError("Invalid day: " + day + ".", responseObserver);
         }
         if(!repository.attractionExists(name)){
-            responseObserver.onError(Status.INTERNAL.withDescription("Unknown error").asRuntimeException());
+            responseObserver.onError(Status.NOT_FOUND.withDescription("Attracion doesn't exist").asRuntimeException());
 
             //returnOnError("Invalid attraction: " + name + ".", responseObserver);
         }
         if(capacity < 0 || repository.attractionHasCapacityAlready(name, day)){
-            responseObserver.onError(Status.INTERNAL.withDescription("Unknown error").asRuntimeException());
+            responseObserver.onError(Status.INTERNAL.withDescription("Attraction has capacity already").asRuntimeException());
             //TODO: Ver como lidiar con esto
             //returnOnError("Attraction " + name + " already has capacity for this day.", responseObserver);
         }
@@ -92,7 +92,6 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
     @Override
     public void addRidesRequest(RidesRequestModel request,
                                 StreamObserver<Int32Value> responseObserver){
-        System.out.println("Entre a addRidesRequest");
         String name = request.getName();
         LocalTime opening = LocalTime.parse(request.getOpening());
         LocalTime closing = LocalTime.parse(request.getClosing());

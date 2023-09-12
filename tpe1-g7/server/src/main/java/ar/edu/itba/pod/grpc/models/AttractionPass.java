@@ -33,6 +33,10 @@ public class AttractionPass {
         this.remaining--;
     }
 
+    public void cancelConsumption() {
+        this.remaining++;
+    }
+
     public int getRemaining() {
         return remaining;
     }
