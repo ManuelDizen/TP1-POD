@@ -13,6 +13,7 @@ import utils.PropertyNames;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 public class BookingClient {
 
@@ -24,7 +25,7 @@ public class BookingClient {
 
         ManagedChannel channel = ConnectionUtils.createChannel();
 
-        String action = ParsingUtils.getSystemProperty(PropertyNames.ACTION).orElseThrow();
+        String action = ParsingUtils.getSystemProperty(PropertyNames.ACTION).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
         //TODO: NullPointerDereference
 
         BookingRequestsServiceGrpc.BookingRequestsServiceBlockingStub req =
@@ -59,6 +60,7 @@ public class BookingClient {
                 System.out.println("Invalid action. Please try again.");
                 break;
         }
+        channel.shutdownNow().awaitTermination(10, TimeUnit.SECONDS);
     }
 
     private static void getAllAttractions(BookingRequestsServiceGrpc.BookingRequestsServiceBlockingStub req) {
@@ -71,12 +73,12 @@ public class BookingClient {
 
     private static void checkAvailability(BookingRequestsServiceGrpc.BookingRequestsServiceBlockingStub req) {
 
-        int day = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow());
+        int day = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow(() -> new RuntimeException("Error parsing parameter")));
         List<String> slots = new ArrayList<>(){};
         Optional<String> slot = ParsingUtils.getSystemProperty(PropertyNames.SLOT);
         if(slot.isEmpty()) {
-            String slotFrom = ParsingUtils.getSystemProperty(PropertyNames.SLOT_FROM).orElseThrow();
-            String slotTo = ParsingUtils.getSystemProperty(PropertyNames.SLOT_TO).orElseThrow();
+            String slotFrom = ParsingUtils.getSystemProperty(PropertyNames.SLOT_FROM).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
+            String slotTo = ParsingUtils.getSystemProperty(PropertyNames.SLOT_TO).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
             slots.add(slotFrom);
             slots.add(slotTo);
         } else {
@@ -96,10 +98,10 @@ public class BookingClient {
     }
 
     private static BookRequestModel bookModel() {
-        String attraction = ParsingUtils.getSystemProperty(PropertyNames.RIDE).orElseThrow();
-        int day = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow());
-        String time = ParsingUtils.getSystemProperty(PropertyNames.SLOT).orElseThrow();
-        String visitorId = ParsingUtils.getSystemProperty(PropertyNames.VISITOR).orElseThrow();
+        String attraction = ParsingUtils.getSystemProperty(PropertyNames.RIDE).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
+        int day = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow(() -> new RuntimeException("Error parsing parameter")));
+        String time = ParsingUtils.getSystemProperty(PropertyNames.SLOT).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
+        String visitorId = ParsingUtils.getSystemProperty(PropertyNames.VISITOR).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
 
         return BookRequestModel.newBuilder().setName(attraction)
                 .setDay(day)
@@ -107,8 +109,5 @@ public class BookingClient {
                 .setId(visitorId)
                 .build();
     }
-
-
-
 
 }

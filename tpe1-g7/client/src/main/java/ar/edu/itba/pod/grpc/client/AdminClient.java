@@ -20,7 +20,7 @@ public class AdminClient {
         logger.info("AdminClient starting...");
 
         ManagedChannel channel = ConnectionUtils.createChannel();
-        String action = ParsingUtils.getSystemProperty(PropertyNames.ACTION).orElseThrow();
+        String action = ParsingUtils.getSystemProperty(PropertyNames.ACTION).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
         //TODO: NullPointerDereference
 
         AdminRequestsServiceGrpc.AdminRequestsServiceBlockingStub req =
@@ -30,8 +30,8 @@ public class AdminClient {
         switch (action){
             case "rides":
                 logger.debug("rides...");
-                entries = ParsingUtils.parseCsv(ParsingUtils.getSystemProperty(PropertyNames.IN_PATH).orElseThrow());
-                for(String[] entry : entries){
+                entries = ParsingUtils.parseCsv(ParsingUtils.getSystemProperty(PropertyNames.IN_PATH).orElseThrow(() -> new RuntimeException("Error parsing parameter")));
+                for(String[] entry : entries) {
                     String name = entry[0];
                     String opening = entry[1];
                     String closing = entry[2];
@@ -49,8 +49,8 @@ public class AdminClient {
                 break;
             case "tickets":
                 logger.debug("tickets...");
-                entries = ParsingUtils.parseCsv(ParsingUtils.getSystemProperty(PropertyNames.IN_PATH).orElseThrow());
-                for(String[] entry : entries){
+                entries = ParsingUtils.parseCsv(ParsingUtils.getSystemProperty(PropertyNames.IN_PATH).orElseThrow(() -> new RuntimeException("Error parsing parameter")));
+                for(String[] entry : entries) {
                     String id = entry[0];
                     PassType type = ParsingUtils.getFromString(entry[1]);
                     if(type == null) {
@@ -74,9 +74,9 @@ public class AdminClient {
                     - Capacidad negativa o ya existe capacidad para ese dia y nombre
                  */
                 logger.debug("slots...");
-                int day = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow());
-                String ride = ParsingUtils.getSystemProperty(PropertyNames.RIDE).orElseThrow();
-                int capacity = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.CAPACITY).orElseThrow());
+                int day = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow(() -> new RuntimeException("Error parsing parameter")));
+                String ride = ParsingUtils.getSystemProperty(PropertyNames.RIDE).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
+                int capacity = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.CAPACITY).orElseThrow(() -> new RuntimeException("Error parsing parameter")));
                 SlotsRequestModel model = SlotsRequestModel.newBuilder()
                         .setDay(day)
                         .setCapacity(capacity)
@@ -89,16 +89,6 @@ public class AdminClient {
             default:
                 logger.error("Action requested is invalid. Please check action is one of the following options:\n[rides|tickets|slots]");
         }
-
-        channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
-
-
-        /*
-        PingRequest request = PingRequest.newBuilder().setName("Hola!!!").build();
-        HealthServiceGrpc.HealthServiceBlockingStub blocking = HealthServiceGrpc.newBlockingStub(channel);
-        PingResponse response = blocking.ping(request);
-        System.out.println(response.getMessage());
-         */
-
+        channel.shutdownNow().awaitTermination(10, TimeUnit.SECONDS);
     }
 }
