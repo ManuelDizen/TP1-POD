@@ -214,14 +214,14 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
 
         if(checkBookingParameters(attraction, day, time, id, responseObserver)) {
             LocalTime slot = repository.getAttractionByName(attraction).getSlot(time);
-            Reservation reservation = repository.getReservation(attraction, day, slot, id);
             if(!repository.attractionHasCapacityAlready(attraction, day)) {
                 bookOnError("Ride has no capacity yet", "Internal", responseObserver);
             }
-
-            if(!repository.confirmReservation(reservation))
+            Reservation reservation = repository.getReservation(attraction, day, slot, id);
+            if(reservation == null)
                 bookOnError("No pending reservations found", "Not found", responseObserver);
             else {
+                repository.confirmReservation(reservation);
                 repository.manageNotifications(reservation);
                 responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.CONFIRMED).
                         setAttraction(attraction).setDay(day).setSlot(String.valueOf(slot)).build());
@@ -242,9 +242,10 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
         if(checkBookingParameters(attraction, day, time, id, responseObserver)) {
             LocalTime slot = repository.getAttractionByName(attraction).getSlot(time);
             Reservation reservation = repository.getReservation(attraction, day, slot, id);
-            if (!repository.cancelReservation(reservation))
+            if (reservation == null)
                 bookOnError("Reservation not found", "Not found", responseObserver);
             else {
+                repository.cancelReservation(reservation);
                 repository.manageNotifications(reservation);
                 responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.CANCELLED)
                         .setAttraction(attraction).setDay(day).setSlot(String.valueOf(slot)).build());

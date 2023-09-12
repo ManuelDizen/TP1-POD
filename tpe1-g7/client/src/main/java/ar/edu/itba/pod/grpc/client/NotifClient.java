@@ -12,6 +12,7 @@ import utils.ParsingUtils;
 import utils.PropertyNames;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class NotifClient {
     private static final Logger logger = LoggerFactory.getLogger(NotifClient.class);
@@ -21,10 +22,10 @@ public class NotifClient {
 
         ManagedChannel channel = ConnectionUtils.createChannel();
 
-        String action = ParsingUtils.getSystemProperty(PropertyNames.ACTION).orElseThrow();
-        String attraction = ParsingUtils.getSystemProperty(PropertyNames.RIDE).orElseThrow();
-        int day = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow());
-        String visitorId = ParsingUtils.getSystemProperty(PropertyNames.VISITOR).orElseThrow();
+        String action = ParsingUtils.getSystemProperty(PropertyNames.ACTION).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
+        String attraction = ParsingUtils.getSystemProperty(PropertyNames.RIDE).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
+        int day = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow(() -> new RuntimeException("Error parsing parameter")));
+        String visitorId = ParsingUtils.getSystemProperty(PropertyNames.VISITOR).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
 
         NotifAttrRequestModel model;
 
@@ -50,7 +51,7 @@ public class NotifClient {
                 System.out.println("Action not recognized. Please try again.");
                 break;
         }
-
+        channel.shutdownNow().awaitTermination(10, TimeUnit.SECONDS);
     }
 
     private static NotifAttrRequestModel buildModel(String visitorId, String name, int day){
