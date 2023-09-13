@@ -60,13 +60,15 @@ public class Attraction {
         return map;
     }
 
-    public void setCapacityForDay(int day, int capacity){
-        lockWrite(capacitiesLock);
+    private void setCapacityForDay(int day, int capacity){
         capacities.put(day,capacity);
-        unlockWrite(capacitiesLock);
     }
 
-    public void initializeSlots(int day, int capacity){
+    public boolean initializeSlots(int day, int capacity){
+
+        if(!capacities.containsKey(day))
+            return false;
+
         setCapacityForDay(day,capacity);
 
         lockWrite(spacesLock);
@@ -91,6 +93,8 @@ public class Attraction {
             f.sendMessage(name + " announced slot capacity for the day " + day +": " + capacity + " places.");
         }
         unlockRead(followersLock);
+
+        return true;
     }
 
     public LocalTime getSlot(LocalTime slot) {

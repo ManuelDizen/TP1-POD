@@ -61,7 +61,10 @@ public class ParkRepository {
     // las reservas en espera, y confirmarlas/cancelarlas/reubicarlas.
     public SlotsReplyModel addSlots(String name, int day, int capacity){
         Attraction att = getAttractionByName(name);
-        att.initializeSlots(day, capacity);
+        synchronized (attractions) {
+            if(!att.initializeSlots(day, capacity))
+                return null;
+        }
         return updateReservations(name, day, capacity);
     }
 
