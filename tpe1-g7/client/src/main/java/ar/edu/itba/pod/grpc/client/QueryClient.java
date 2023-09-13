@@ -33,17 +33,21 @@ public class QueryClient {
 
         switch(action) {
             case "capacity":
+                logger.info("QueryClient capacity...");
                 int dayC = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow(() -> new RuntimeException("Error parsing parameter")));
                 QueryRequestModel modelC = QueryRequestModel.newBuilder().setDay(dayC).build();
                 List<QueryCapacityModel> capacityList = new ArrayList<>();
                 req.getCapacityRequest(modelC).forEachRemaining(capacityList::add);
+                //TODO: try catch or validar lista vacia del lado del cliente
                 writeCapacityOutput(capacityList, outPath);
                 break;
             case "confirmed":
+                logger.info("QueryClient confirmed...");
                 int day = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow(() -> new RuntimeException("Error parsing parameter")));
                 QueryRequestModel model = QueryRequestModel.newBuilder().setDay(day).build();
                 List<QueryConfirmedModel> confirmedList = new ArrayList<>();
                 req.getConfirmedRequest(model).forEachRemaining(confirmedList::add);
+                //TODO: try catch or validar lista vacia del lado del cliente
                 writeConfirmedOutput(confirmedList, outPath);
                 break;
         }
@@ -51,8 +55,8 @@ public class QueryClient {
     }
 
     private static void writeOnFile(StringBuilder output, String outPath) {
+        File outFile = new File(outPath);
         try {
-            File outFile = new File(outPath);
             if (!outFile.exists()) {
                 outFile.createNewFile();
             }
@@ -69,8 +73,10 @@ public class QueryClient {
         StringBuilder output = new StringBuilder();
         output.append("Slot ").append(" | ").append("Capacity").append(" | ").append("Attraction\n");
         capacityList.forEach((capacity) -> {
+            int len = String.valueOf(capacity.getCapacity()).length();
             output.append(capacity.getSlot());
             output.append(" | ");
+            output.append(" ".repeat("Capacity".length()-len));
             output.append(capacity.getCapacity());
             output.append(" | ");
             output.append(capacity.getAttraction());

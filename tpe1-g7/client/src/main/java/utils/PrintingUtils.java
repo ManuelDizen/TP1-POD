@@ -18,10 +18,15 @@ public class PrintingUtils {
 
     public static void printAttractions(List<RidesRequestModel> attractions) {
 
-        System.out.println("Attractions: ");
+        if (attractions.isEmpty()) {
+            System.out.println("Attractions under maintenance.");
+        }
+        else {
+            System.out.println("Attractions: ");
 
-        for(RidesRequestModel r : attractions) {
-            System.out.println(r.getName() + " : " + r.getOpening() + " - " + r.getClosing());
+            for (RidesRequestModel r : attractions) {
+                System.out.println(r.getName() + " : " + r.getOpening() + " - " + r.getClosing());
+            }
         }
 
     }

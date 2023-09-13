@@ -175,12 +175,20 @@ public class ParkRepository {
                     Map<LocalTime, Long> acc = PRDay.stream().collect(
                             Collectors.groupingBy(Reservation::getSlot, Collectors.counting())
                     );
-                    LocalTime maxSlot = acc.entrySet().stream().max(Map.Entry.comparingByValue())
+                    LocalTime maxSlot = acc.entrySet().stream().sorted(Map.Entry.comparingByKey())
+                            .max(Map.Entry.comparingByValue())
                             .map(Map.Entry::getKey).orElse(null);
-                    //System.out.println("El maxSlot es: ");
                     QueryCapacityModel capacityModel = QueryCapacityModel.newBuilder()
                             .setSlot(String.valueOf(maxSlot))
                             .setCapacity(acc.get(maxSlot).intValue())
+                            .setAttraction(attr.getName())
+                            .build();
+                    capacityList.add(capacityModel);
+                }
+                else {
+                    QueryCapacityModel capacityModel = QueryCapacityModel.newBuilder()
+                            .setSlot(attr.getOpening().toString())
+                            .setCapacity(0)
                             .setAttraction(attr.getName())
                             .build();
                     capacityList.add(capacityModel);
@@ -207,6 +215,8 @@ public class ParkRepository {
             int diff = r1.getConfirmedAt().compareTo(r2.getConfirmedAt());
             if(diff == 0) {
                 diff = r1.getAttractionName().compareTo(r2.getAttractionName());
+                if(diff == 0)
+                    diff = r1.getVisitorId().compareTo(r2.getVisitorId());
             }
             return diff;
         });
