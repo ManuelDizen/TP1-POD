@@ -25,10 +25,6 @@ public class ParkRepository {
     private final List<AttractionPass> passes = new ArrayList<>();
     private final Map<String, List<Reservation>> reservations = new HashMap<>();
     private static ParkRepository repository;
-
-    private static final boolean fairness4locks = true; //Activates a pseudoorder so that writer threads
-                                                        // do not get blocked eternally
-
     private static ReadWriteLock attrLock = new ReentrantReadWriteLock(fairness4locks);
     private static ReadWriteLock passLock = new ReentrantReadWriteLock(fairness4locks);
     private static ReadWriteLock reservsLock = new ReentrantReadWriteLock(fairness4locks);

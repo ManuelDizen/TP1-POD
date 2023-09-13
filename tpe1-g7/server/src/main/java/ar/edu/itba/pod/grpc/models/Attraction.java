@@ -1,6 +1,8 @@
 package ar.edu.itba.pod.grpc.models;
 
 
+import ar.edu.itba.pod.grpc.utils.LockUtils;
+
 import java.time.LocalTime;
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -16,10 +18,9 @@ public class Attraction {
     private final Map<Integer, Map<LocalTime, Integer>> spaceAvailable = new HashMap<>();
     private final Map<Integer, Integer> capacities = new HashMap<>();
     private final List<Follower> followers = new ArrayList<>();
-
-    private final ReadWriteLock spacesLock = new ReentrantReadWriteLock();
-    private final ReadWriteLock capacitiesLock = new ReentrantReadWriteLock();
-    private final ReadWriteLock followersLock = new ReentrantReadWriteLock();
+    private final ReadWriteLock spacesLock = new ReentrantReadWriteLock(fairness4locks);
+    private final ReadWriteLock capacitiesLock = new ReentrantReadWriteLock(fairness4locks);
+    private final ReadWriteLock followersLock = new ReentrantReadWriteLock(fairness4locks);
 
     public Attraction(String name, LocalTime opening, LocalTime closing, int minsPerSlot) {
         this.name = name;
