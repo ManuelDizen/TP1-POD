@@ -76,7 +76,7 @@ public class NotifRequestsServant extends NotifRequestsServiceGrpc.NotifRequests
                                 return;
                             }
                             if(!repository.visitorHasPass(visitorId, day)){
-                                String msg = "Day " + day + " is invalid.";
+                                String msg = "Visitor " + visitorId + " already has pass for day " + day + ".";
                                 logger.error(msg);
                                 responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(msg).asRuntimeException());
                                 return;

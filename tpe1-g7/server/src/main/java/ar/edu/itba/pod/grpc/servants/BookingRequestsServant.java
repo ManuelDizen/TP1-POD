@@ -196,12 +196,7 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
                 }
             }
         }
-
-
-
-
         System.out.println("salgo");
-
     }
 
     @Override

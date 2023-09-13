@@ -64,8 +64,14 @@ public class AdminClient {
                             .setClosing(closing)
                             .setMinsPerSlot(minsPerSlot)
                             .build();
-                    Int32Value response = req.addRidesRequest(model);
-                    added += response.getValue();
+                    try{
+                        Int32Value response = req.addRidesRequest(model);
+                        added += response.getValue();
+                        System.out.println(name + " ride added.");
+                    }
+                    catch(RuntimeException e){
+                        System.out.println("Cannot add ride " + name + ": " + e.getMessage());
+                    }
                 }
                 PrintingUtils.printRidesReply(entries.size(), added);
             }
@@ -90,8 +96,14 @@ public class AdminClient {
                             .setType(type)
                             .setId(id)
                             .build();
-                    Int32Value response = req.addTicketsRequest(model);
-                    added += response.getValue();
+                    try {
+                        Int32Value response = req.addTicketsRequest(model);
+                        added += response.getValue();
+                        System.out.println("Pass for visitor " + id + " for day " + entry[2] + " added.");
+                    }
+                    catch(RuntimeException e){
+                        System.out.println("Could not add pass for visitor " + id + " on day " + entry[2] + ".");
+                    }
                 }
                 PrintingUtils.printTicketsReply(entries.size(), added);
             }
@@ -109,9 +121,14 @@ public class AdminClient {
                         .setCapacity(queryModel.getCapacity())
                         .setRide(queryModel.getRide())
                         .build();
-                SlotsReplyModel response = req.addSlotsRequest(model);
-                PrintingUtils.printSlotsReply(response, queryModel.getCapacity(),
-                        queryModel.getRide(), queryModel.getDay());
+                try{
+                    SlotsReplyModel response = req.addSlotsRequest(model);
+                    PrintingUtils.printSlotsReply(response, queryModel.getCapacity(),
+                            queryModel.getRide(), queryModel.getDay());
+                }
+                catch(RuntimeException e){
+                    System.out.println(e.getMessage());
+                }
             }
             default ->
                 //Note: Should never reach this point

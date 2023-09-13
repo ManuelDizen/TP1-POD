@@ -52,18 +52,33 @@ public class BookingClient {
             case "availability" -> checkAvailability(req);
             case "book" -> {
                 model = bookModel();
-                response = req.bookingRequest(model);
-                printBookingReply(response);
+                try{
+                    response = req.bookingRequest(model);
+                    printBookingReply(response);
+                }
+                catch(RuntimeException e){
+                    System.out.println("Error booking: " + e.getMessage());
+                }
             }
             case "confirm" -> {
                 model = bookModel();
-                response = req.confirmBooking(model);
-                printBookingReply(response);
+                try{
+                    response = req.confirmBooking(model);
+                    printBookingReply(response);
+                }
+                catch(RuntimeException e){
+                    System.out.println("Error booking: " + e.getMessage());
+                }
             }
             case "cancel" -> {
                 model = bookModel();
-                response = req.cancelBooking(model);
-                printBookingReply(response);
+                try{
+                    response = req.cancelBooking(model);
+                    printBookingReply(response);
+                }
+                catch(RuntimeException e){
+                    System.out.println("Error booking: " + e.getMessage());
+                }
             }
             default -> System.out.println("Invalid action. Please try again.");
         }

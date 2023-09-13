@@ -59,8 +59,13 @@ public class NotifClient {
             case "unfollow" -> {
                 NotifRequestsServiceGrpc.NotifRequestsServiceBlockingStub
                         blockingStub = NotifRequestsServiceGrpc.newBlockingStub(channel);
-                NotifAttrReplyModel reply = blockingStub.unfollowAttrRequest(model);
-                System.out.println(reply.getMessage());
+                try{
+                    NotifAttrReplyModel reply = blockingStub.unfollowAttrRequest(model);
+                    System.out.println(reply.getMessage());
+                }
+                catch(RuntimeException e){
+                    System.out.println(e.getMessage());
+                }
             }
             default -> System.out.println("Action not recognized. Please try again.");
         }
@@ -85,7 +90,7 @@ public class NotifClient {
 
             @Override
             public void onError(Throwable throwable) {
-                System.out.println();
+                System.out.println(throwable.getMessage());
                 latch.countDown();
             }
 
