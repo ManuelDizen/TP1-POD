@@ -120,26 +120,26 @@ public class ParkRepository {
 
     public boolean addReservation(Reservation reservation) {
 
-        if(reservation.getStatus() == PENDING) {
-            List<Reservation> pendingReservations = reservations.get(reservation.getAttractionName());
-            if(pendingReservations.contains(reservation)) {
-                return false;
-            }
-            pendingReservations.add(reservation);
-            reservations.put(reservation.getAttractionName(), pendingReservations);
-            manageNotifications(reservation);
+        List<Reservation> reservs = reservations.get(reservation.getAttractionName());
 
-        } else if(reservation.getStatus() == CONFIRMED) {
-            //me busco el mapa Map<Horario, Capacidad> de la atracción para ese día
+        if(reservs.contains(reservation)) {
+            return false;
+        }
+        reservs.add(reservation);
+        reservations.put(reservation.getAttractionName(), reservs);
+
+        if(reservation.getStatus() == CONFIRMED) {
             Map<LocalTime, Integer> slots = repository.getAttractionByName(reservation.getAttractionName()).getSpaceAvailable().get(reservation.getDay());
             Integer capacity = slots.get(reservation.getSlot());
             if(capacity < 0) {
                 return false;
             }
             capacity--;
+            reservation.setReserved(true);
             slots.put(reservation.getSlot(), capacity);
-            manageNotifications(reservation);
         }
+
+        manageNotifications(reservation);
 
         AttractionPass pass = getAttractionPass(reservation.getVisitorId(), reservation.getDay());
         if(pass.getType() == THREE) {
@@ -265,6 +265,7 @@ public class ParkRepository {
                 // Tengo lugar para la reserva pedida. Confirmo, y bajo capacidad en mapa
                 confirmReservation(r);
                 capacities.put(prevSlot, capacities.get(r.getSlot()) - 1);
+                r.setReserved(true);
                 confirmed++;
             }
             else{
@@ -287,12 +288,13 @@ public class ParkRepository {
                     r.setStatus(PENDING);
                     r.setSlot(firstAvailable);
                     capacities.put(firstAvailable, capacities.get(firstAvailable)-1);
+                    r.setReserved(true);
                     relocated++;
                     updated = true;
 
                 }
                 else{
-                    cancelReservation(r); // No hay espacio en ningún slot, se cancela
+                    r.setStatus(CANCELLED); // No hay espacio en ningún slot, se cancela
                     cancelled++;
                 }
             }
@@ -322,6 +324,11 @@ public class ParkRepository {
         AttractionPass pass = getAttractionPass(reservation.getVisitorId(), reservation.getDay());
         if(pass.getType() == THREE)
             pass.cancelConsumption();
+        if(reservation.isReserved()) {
+            Map<LocalTime, Integer> capacities = getAttractionByName(reservation.getAttractionName()).getSpaceAvailable().get(reservation.getDay());
+            capacities.put(reservation.getSlot(), capacities.get(reservation.getSlot())-1);
+            reservation.setReserved(false);
+        }
         reservation.setStatus(CANCELLED);
     }
 
