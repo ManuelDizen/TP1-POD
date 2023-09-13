@@ -147,48 +147,32 @@ public class ParkRepository {
 
     public boolean addReservation(Reservation reservation) {
 
-        if(reservation.getStatus() == PENDING) {
-            lockRead(reservsLock);
-            List<Reservation> pendingReservations = reservations.get(reservation.getAttractionName());
-            if(pendingReservations.contains(reservation)) {
-                return false;
-            }
-            unlockRead(reservsLock);
-
-            lockWrite(reservsLock);
-            pendingReservations.add(reservation);
-            reservations.put(reservation.getAttractionName(), pendingReservations);
-            unlockWrite(reservsLock);
-
-            manageNotifications(reservation);
-
-        } else if(reservation.getStatus() == CONFIRMED) {
-            //me busco el mapa Map<Horario, Capacidad> de la atracción para ese día
-            //TODO: Acá que variable necesito cuidar? Reservations?
-            Attraction att = getAttractionByName(reservation.getAttractionName());
-            Map<LocalTime, Integer> slots = att.getSpaceAvailable().get(reservation.getDay());
-            /*TODO creo que esta linea de arriba no termina de proteger
-            1) Traigo spaceAvailsble pero largo el lock, por lo que alguien puede escribir
-            2) Lo uso aca para updatear slots en base a eso
-
-            Creo que lo mejor sería traerlo y quedarme con el lock, y devolverlo una vez que tenga que escribir
-            Sigo con otras cuestiones
-             */
-            Integer capacity = slots.get(reservation.getSlot());
-            if(capacity < 0) {
-                return false;
-            }
-            capacity--;
-            att.updateSlots(reservation.getDay(), reservation.getSlot(), capacity);
-            //Esto lo cambie para mantener integridad con los locks
-
-            manageNotifications(reservation);
-        }
-
         AttractionPass pass = getAttractionPass(reservation.getVisitorId(), reservation.getDay());
-        if(pass.getType() == THREE) {
-            pass.rideConsumption();
+        if(!pass.rideConsumption()) {
+            return false;
         }
+
+        lockWrite(reservsLock);
+
+        List<Reservation> reservs = reservations.get(reservation.getAttractionName());
+
+        if(reservs.contains(reservation)) {
+            return false;
+        }
+        reservs.add(reservation);
+
+        reservations.put(reservation.getAttractionName(), reservs);
+
+        unlockWrite(reservsLock);
+
+        if(reservation.getStatus() == CONFIRMED) {
+            Attraction attr = getAttractionByName(reservation.getAttractionName());
+            attr.addReservation(reservation);
+            reservation.setReserved(true);
+        }
+
+        manageNotifications(reservation);
+
         return true;
 
     }

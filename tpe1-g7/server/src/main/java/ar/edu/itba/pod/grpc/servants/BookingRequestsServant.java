@@ -181,11 +181,11 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
                 } else
                     bookOnError("Reservation already exists", "Already exists", responseObserver);
             } else {
-                int capacity = repository.getRemainingCapacity(attraction, day, slot);
-
-                if(capacity <= 0) {
-                    bookOnError("Slot is full", "Permission denied", responseObserver);
-                }
+//                int capacity = repository.getRemainingCapacity(attraction, day, slot);
+//
+//                if(capacity <= 0) {
+//                    bookOnError("Slot is full", "Permission denied", responseObserver);
+//                }
 
                 if(repository.addReservation(new Reservation(attraction, day, id, slot, ReservationStatus.CONFIRMED))) {
                     responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.CONFIRMED)
@@ -271,7 +271,7 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
         if(!repository.visitorHasPass(id, day) || !repository.visitorCanVisit(id, day, slot)) {
             bookOnError("Invalid pass", "Permission denied", responseObserver);
             return false;
-        }
+        } // TODO: el chequeo tiene qeu estar sincronizado
 
         return true;
     }

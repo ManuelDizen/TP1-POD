@@ -14,6 +14,7 @@ public class Reservation {
     private final LocalDateTime createdAt;
     private LocalDateTime confirmedAt = null;
 
+    private boolean reserved;
 
     public Reservation(String attractionName, int day, UUID visitorId, LocalTime slot, ReservationStatus status) {
         this.attractionName = attractionName;
@@ -22,6 +23,7 @@ public class Reservation {
         this.slot = slot;
         this.status = status;
         this.createdAt = LocalDateTime.now();
+        this.reserved = false;
     }
 
     public String getAttractionName() {
@@ -75,5 +77,13 @@ public class Reservation {
 
     public void setConfirmedAt(LocalDateTime confirmedAt) {
         this.confirmedAt = confirmedAt;
+    }
+
+    public boolean isReserved() {
+        return reserved;
+    }
+
+    public void setReserved(boolean reserved) {
+        this.reserved = reserved;
     }
 }

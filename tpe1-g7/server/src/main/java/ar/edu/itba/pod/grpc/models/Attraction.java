@@ -101,6 +101,20 @@ public class Attraction {
         return true;
     }
 
+    public boolean addReservation(Reservation reservation) {
+        lockWrite(spacesLock);
+        Map<LocalTime, Integer> slots = spaceAvailable.get(reservation.getDay());
+        Integer capacity = slots.get(reservation.getSlot());
+        if(capacity <= 0) {
+            unlockWrite(spacesLock);
+            return false;
+        }
+        capacity--;
+        slots.put(reservation.getSlot(), capacity);
+        unlockWrite(spacesLock);
+        return true;
+    }
+
     public LocalTime getSlot(LocalTime slot) {
 
         int i;
