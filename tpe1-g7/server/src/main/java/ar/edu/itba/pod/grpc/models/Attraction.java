@@ -66,6 +66,8 @@ public class Attraction {
 
     public boolean initializeSlots(int day, int capacity){
 
+        lockWrite(capacitiesLock);
+
         if(!capacities.containsKey(day))
             return false;
 
@@ -93,6 +95,8 @@ public class Attraction {
             f.sendMessage(name + " announced slot capacity for the day " + day +": " + capacity + " places.");
         }
         unlockRead(followersLock);
+
+        unlockWrite(capacitiesLock);
 
         return true;
     }
