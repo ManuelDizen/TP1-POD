@@ -53,4 +53,8 @@ public class PrintingUtils {
             System.out.println(actual + " passes added.");
         }
     }
+
+    public static void printBookingReply(ReservationState response){
+        System.out.println("The reservation for " + response.getAttraction() +  " at " + response.getSlot() + " on the day " + response.getDay() + " is " + response.getStatus());
+    }
 }

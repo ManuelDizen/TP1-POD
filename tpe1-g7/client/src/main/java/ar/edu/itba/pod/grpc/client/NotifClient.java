@@ -1,5 +1,6 @@
 package ar.edu.itba.pod.grpc.client;
 
+import ar.edu.itba.pod.grpc.client.queryModels.NotifQueryParamsModel;
 import ar.edu.itba.pod.grpc.requests.NotifAttrReplyModel;
 import ar.edu.itba.pod.grpc.requests.NotifAttrRequestModel;
 import ar.edu.itba.pod.grpc.requests.NotifRequestsServiceGrpc;
@@ -11,7 +12,11 @@ import utils.ConnectionUtils;
 import utils.ParsingUtils;
 import utils.PropertyNames;
 
+import java.security.InvalidParameterException;
+import java.util.NoSuchElementException;
 import java.util.concurrent.CountDownLatch;
+
+import static utils.ConnectionUtils.shutdownChannel;
 
 public class NotifClient {
     private static final Logger logger = LoggerFactory.getLogger(NotifClient.class);
@@ -21,35 +26,45 @@ public class NotifClient {
 
         ManagedChannel channel = ConnectionUtils.createChannel();
 
-        String action = ParsingUtils.getSystemProperty(PropertyNames.ACTION).orElseThrow();
-        String attraction = ParsingUtils.getSystemProperty(PropertyNames.RIDE).orElseThrow();
-        int day = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow());
-        String visitorId = ParsingUtils.getSystemProperty(PropertyNames.VISITOR).orElseThrow();
+        String action = null;
+        try {
+            action = ParsingUtils.getSystemProperty(PropertyNames.ACTION).orElseThrow();
+        }
+        catch(NoSuchElementException e){
+            System.out.println("Action requested is invalid. Please check action is one of the following options:\n[follow|unfollow]");
+            shutdownChannel(channel);
+        }
 
-        NotifAttrRequestModel model;
+        NotifQueryParamsModel params;
+        try{
+            params = new NotifQueryParamsModel();
+        }
+        catch(InvalidParameterException e){
+            System.out.println("Invalid parameters. Please try again.");
+            shutdownChannel(channel);
+            return;
+        }
 
-        switch(action){
-            case "follow":
+        NotifAttrRequestModel model = buildModel(params.getVisitorId(), params.getAttraction(), params.getDay());
+
+        switch (action) {
+            case "follow" -> {
                 NotifRequestsServiceGrpc.NotifRequestsServiceStub stub =
                         NotifRequestsServiceGrpc.newStub(channel);
-                model = buildModel(visitorId, attraction, day);
                 CountDownLatch latch = new CountDownLatch(1); //On/Off Latch (doc)
                 StreamObserver<NotifAttrReplyModel> obs = getNotifObserver(latch);
                 stub.followAttrRequest(model, obs);
                 latch.await();
-                break;
-            case "unfollow":
-                System.out.println("4 de septiembre, la llamada que llegaría");
-                model = buildModel(visitorId, attraction, day);
+            }
+            case "unfollow" -> {
                 NotifRequestsServiceGrpc.NotifRequestsServiceBlockingStub
                         blockingStub = NotifRequestsServiceGrpc.newBlockingStub(channel);
                 NotifAttrReplyModel reply = blockingStub.unfollowAttrRequest(model);
                 System.out.println(reply.getMessage());
-                break;
-            default:
-                System.out.println("Action not recognized. Please try again.");
-                break;
+            }
+            default -> System.out.println("Action not recognized. Please try again.");
         }
+        shutdownChannel(channel);
 
     }
 

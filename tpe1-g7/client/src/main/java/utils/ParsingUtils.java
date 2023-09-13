@@ -70,7 +70,7 @@ public class ParsingUtils {
         return lines;
     }
 
-    public static PassType getFromString(String name) {
+    public static PassType getPassNameFromString(String name) {
 
         return switch (name) {
             case "UNLIMITED" -> PassType.UNLIMITED;

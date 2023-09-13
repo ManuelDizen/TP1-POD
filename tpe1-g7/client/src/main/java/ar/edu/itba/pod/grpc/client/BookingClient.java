@@ -1,5 +1,7 @@
 package ar.edu.itba.pod.grpc.client;
 
+import ar.edu.itba.pod.grpc.client.queryModels.BookQueryParamsModel;
+import ar.edu.itba.pod.grpc.client.queryModels.SlotsQueryParamsModel;
 import ar.edu.itba.pod.grpc.requests.*;
 import com.google.protobuf.Empty;
 import io.grpc.ManagedChannel;
@@ -10,9 +12,14 @@ import utils.ParsingUtils;
 import utils.PrintingUtils;
 import utils.PropertyNames;
 
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
+
+import static utils.ConnectionUtils.shutdownChannel;
+import static utils.PrintingUtils.printBookingReply;
 
 public class BookingClient {
 
@@ -24,8 +31,15 @@ public class BookingClient {
 
         ManagedChannel channel = ConnectionUtils.createChannel();
 
-        String action = ParsingUtils.getSystemProperty(PropertyNames.ACTION).orElseThrow();
-        //TODO: NullPointerDereference
+        String action = null;
+        try {
+            action = ParsingUtils.getSystemProperty(PropertyNames.ACTION).orElseThrow();
+        }
+        catch(NoSuchElementException e){
+            System.out.println("Action requested is invalid. Please check action is one of the following options:\n[rides|tickets|slots]");
+            shutdownChannel(channel);
+            return;
+        }
 
         BookingRequestsServiceGrpc.BookingRequestsServiceBlockingStub req =
                 BookingRequestsServiceGrpc.newBlockingStub(channel);
@@ -33,40 +47,32 @@ public class BookingClient {
         BookRequestModel model;
 
         ReservationState response;
-        switch(action) {
-            case "attractions":
-                getAllAttractions(req);
-                break;
-            case "availability":
-                checkAvailability(req);
-                break;
-            case "book":
+        switch (action) {
+            case "attractions" -> getAllAttractions(req);
+            case "availability" -> checkAvailability(req);
+            case "book" -> {
                 model = bookModel();
                 response = req.bookingRequest(model);
-                System.out.println("The reservation for " + response.getAttraction() +  " at " + response.getSlot() + " on the day " + response.getDay() + " is " + response.getStatus());
-                break;
-            case "confirm":
+                printBookingReply(response);
+            }
+            case "confirm" -> {
                 model = bookModel();
                 response = req.confirmBooking(model);
-                System.out.println("The reservation for " + response.getAttraction() +  " at " + response.getSlot() + " on the day " + response.getDay() + " is " + response.getStatus());
-                break;
-            case "cancel":
+                printBookingReply(response);
+            }
+            case "cancel" -> {
                 model = bookModel();
                 response = req.cancelBooking(model);
-                System.out.println("The reservation for " + response.getAttraction() +  " at " + response.getSlot() + " on the day " + response.getDay() + " is " + response.getStatus());
-                break;
-            default:
-                System.out.println("Invalid action. Please try again.");
-                break;
+                printBookingReply(response);
+            }
+            default -> System.out.println("Invalid action. Please try again.");
         }
+        shutdownChannel(channel);
     }
 
     private static void getAllAttractions(BookingRequestsServiceGrpc.BookingRequestsServiceBlockingStub req) {
-
         List<RidesRequestModel> attractionList = req.getAttractionsRequest(Empty.getDefaultInstance()).getRidesList();
-
         PrintingUtils.printAttractions(attractionList);
-
     }
 
     private static void checkAvailability(BookingRequestsServiceGrpc.BookingRequestsServiceBlockingStub req) {
@@ -96,19 +102,19 @@ public class BookingClient {
     }
 
     private static BookRequestModel bookModel() {
-        String attraction = ParsingUtils.getSystemProperty(PropertyNames.RIDE).orElseThrow();
-        int day = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow());
-        String time = ParsingUtils.getSystemProperty(PropertyNames.SLOT).orElseThrow();
-        String visitorId = ParsingUtils.getSystemProperty(PropertyNames.VISITOR).orElseThrow();
+        BookQueryParamsModel queryModel;
+        try {
+            queryModel = new BookQueryParamsModel();
+        } catch (InvalidParameterException e) {
+            System.out.println(e.getMessage());
+            return null;
+        }
 
-        return BookRequestModel.newBuilder().setName(attraction)
-                .setDay(day)
-                .setTime(time)
-                .setId(visitorId)
+        return BookRequestModel.newBuilder().setName(queryModel.getAttraction())
+                .setDay(queryModel.getDay())
+                .setTime(queryModel.getTime())
+                .setId(queryModel.getVisitorId())
                 .build();
     }
-
-
-
 
 }

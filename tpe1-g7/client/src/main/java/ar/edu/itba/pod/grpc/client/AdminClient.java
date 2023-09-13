@@ -1,5 +1,6 @@
 package ar.edu.itba.pod.grpc.client;
 
+import ar.edu.itba.pod.grpc.client.queryModels.SlotsQueryParamsModel;
 import ar.edu.itba.pod.grpc.requests.*;
 import com.google.protobuf.Int32Value;
 import io.grpc.ManagedChannel;
@@ -10,8 +11,13 @@ import utils.ParsingUtils;
 import utils.PrintingUtils;
 import utils.PropertyNames;
 
+import java.security.InvalidParameterException;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+
+import static utils.ConnectionUtils.shutdownChannel;
 
 public class AdminClient {
     private static final Logger logger = LoggerFactory.getLogger(AdminClient.class);
@@ -20,18 +26,34 @@ public class AdminClient {
         logger.info("AdminClient starting...");
 
         ManagedChannel channel = ConnectionUtils.createChannel();
-        String action = ParsingUtils.getSystemProperty(PropertyNames.ACTION).orElseThrow();
-        //TODO: NullPointerDereference
+
+        String action;
+        try {
+            action = ParsingUtils.getSystemProperty(PropertyNames.ACTION).orElseThrow();
+        }
+        catch(NoSuchElementException e){
+            System.out.println("Action requested is invalid. Please check action is one of the following options:\n[rides|tickets|slots]");
+            shutdownChannel(channel);
+            return;
+        }
 
         AdminRequestsServiceGrpc.AdminRequestsServiceBlockingStub req =
                 AdminRequestsServiceGrpc.newBlockingStub(channel);
+
         List<String[]> entries;
         int added = 0;
-        switch (action){
-            case "rides":
+        Optional<String> path;
+
+        switch (action) {
+            case "rides" -> {
                 logger.debug("rides...");
-                entries = ParsingUtils.parseCsv(ParsingUtils.getSystemProperty(PropertyNames.IN_PATH).orElseThrow());
-                for(String[] entry : entries){
+                path = ParsingUtils.getSystemProperty(PropertyNames.IN_PATH);
+                if (path.isEmpty()) {
+                    System.out.println("Path does not exist. Now exiting.");
+                    break;
+                }
+                entries = ParsingUtils.parseCsv(path.get());
+                for (String[] entry : entries) {
                     String name = entry[0];
                     String opening = entry[1];
                     String closing = entry[2];
@@ -46,16 +68,22 @@ public class AdminClient {
                     added += response.getValue();
                 }
                 PrintingUtils.printRidesReply(entries.size(), added);
-                break;
-            case "tickets":
+            }
+            case "tickets" -> {
                 logger.debug("tickets...");
-                entries = ParsingUtils.parseCsv(ParsingUtils.getSystemProperty(PropertyNames.IN_PATH).orElseThrow());
-                for(String[] entry : entries){
-                    String id = entry[0];
-                    PassType type = ParsingUtils.getFromString(entry[1]);
-                    if(type == null) {
-                        throw new RuntimeException("Error in type parameter. Please check csv file.\n");
+                path = ParsingUtils.getSystemProperty(PropertyNames.IN_PATH);
+                if (path.isEmpty()) {
+                    System.out.println("Path does not exist. Now exiting.");
+                    break;
+                }
+                entries = ParsingUtils.parseCsv(path.get());
+                for (String[] entry : entries) {
+                    PassType type = ParsingUtils.getPassNameFromString(entry[1]);
+                    if (type == null) {
+                        System.out.println("Pass type is invalid. Please try again.\n");
+                        break;
                     }
+                    String id = entry[0];
                     int day = Integer.parseInt(entry[2]);
                     TicketsRequestModel model = TicketsRequestModel.newBuilder()
                             .setDay(day)
@@ -66,39 +94,29 @@ public class AdminClient {
                     added += response.getValue();
                 }
                 PrintingUtils.printTicketsReply(entries.size(), added);
-                break;
-            case "slots":
-                /*TODO: Esto me lo anoto para acordarme después. Falla si:
-                    - Nombre no existe
-                    - Dia menor a 1 y mayor a 365
-                    - Capacidad negativa o ya existe capacidad para ese dia y nombre
-                 */
+            }
+            case "slots" -> {
                 logger.debug("slots...");
-                int day = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow());
-                String ride = ParsingUtils.getSystemProperty(PropertyNames.RIDE).orElseThrow();
-                int capacity = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.CAPACITY).orElseThrow());
+                SlotsQueryParamsModel queryModel;
+                try {
+                    queryModel = new SlotsQueryParamsModel();
+                } catch (InvalidParameterException e) {
+                    System.out.println(e.getMessage());
+                    break;
+                }
                 SlotsRequestModel model = SlotsRequestModel.newBuilder()
-                        .setDay(day)
-                        .setCapacity(capacity)
-                        .setRide(ride)
+                        .setDay(queryModel.getDay())
+                        .setCapacity(queryModel.getCapacity())
+                        .setRide(queryModel.getRide())
                         .build();
                 SlotsReplyModel response = req.addSlotsRequest(model);
-                PrintingUtils.printSlotsReply(response, capacity, ride, day);
-                //TODO: Discuss if client side validation or server side is necessary
-                break;
-            default:
-                logger.error("Action requested is invalid. Please check action is one of the following options:\n[rides|tickets|slots]");
+                PrintingUtils.printSlotsReply(response, queryModel.getCapacity(),
+                        queryModel.getRide(), queryModel.getDay());
+            }
+            default ->
+                //Note: Should never reach this point
+                    logger.error("Action requested is invalid. Please check action is one of the following options:\n[rides|tickets|slots]");
         }
-
-        channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
-
-
-        /*
-        PingRequest request = PingRequest.newBuilder().setName("Hola!!!").build();
-        HealthServiceGrpc.HealthServiceBlockingStub blocking = HealthServiceGrpc.newBlockingStub(channel);
-        PingResponse response = blocking.ping(request);
-        System.out.println(response.getMessage());
-         */
-
+        shutdownChannel(channel);
     }
 }
