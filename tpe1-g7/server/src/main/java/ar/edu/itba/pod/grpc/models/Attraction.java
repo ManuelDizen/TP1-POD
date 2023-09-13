@@ -60,7 +60,15 @@ public class Attraction {
         return map;
     }
 
+    public void setCapacityForDay(int day, int capacity){
+        lockWrite(capacitiesLock);
+        capacities.put(day,capacity);
+        unlockWrite(capacitiesLock);
+    }
+
     public void initializeSlots(int day, int capacity){
+        setCapacityForDay(day,capacity);
+
         lockWrite(spacesLock);
 
         spaceAvailable.put(day, new HashMap<>());

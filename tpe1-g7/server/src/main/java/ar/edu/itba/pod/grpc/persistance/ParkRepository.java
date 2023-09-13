@@ -61,11 +61,7 @@ public class ParkRepository {
     // las reservas en espera, y confirmarlas/cancelarlas/reubicarlas.
     public synchronized SlotsReplyModel addSlots(String name, int day, int capacity){
         Attraction att = getAttractionByName(name);
-        lockWrite(att.getCapacitiesLock()); //TODO pass to attraction class
-        att.getCapacities().put(day, capacity); //Validations have been done so that attraction does not have capacity yet that day
-        unlockWrite(att.getCapacitiesLock());
         att.initializeSlots(day, capacity);
-        //updateReservations(name, day, capacity);
         return updateReservations(name, day, capacity);
     }
 
