@@ -59,13 +59,13 @@ public class ParkRepository {
 
     //Con att, dia y capacidad, genera la capcaidad para todos los slots de ese día. Hace falta validar
     // las reservas en espera, y confirmarlas/cancelarlas/reubicarlas.
-    public synchronized SlotsReplyModel addSlots(String name, int day, int capacity){
+    public SlotsReplyModel addSlots(String name, int day, int capacity){
         Attraction att = getAttractionByName(name);
         att.initializeSlots(day, capacity);
         return updateReservations(name, day, capacity);
     }
 
-    public synchronized Attraction addRide(Attraction att){
+    public Attraction addRide(Attraction att){
         lockWrite(attrLock);
         attractions.add(att);
         unlockWrite(attrLock);
@@ -77,7 +77,7 @@ public class ParkRepository {
         return att;
     }
 
-    public synchronized boolean addPass(AttractionPass pass){
+    public boolean addPass(AttractionPass pass){
         lockWrite(passLock);
         passes.add(pass);
         unlockWrite(passLock);
