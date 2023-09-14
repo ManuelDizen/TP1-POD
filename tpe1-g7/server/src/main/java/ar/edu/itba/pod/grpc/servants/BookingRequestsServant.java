@@ -171,30 +171,15 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
         if(checkBookingParameters(attraction, day, time, id, responseObserver)) {
             LocalTime slot = repository.getAttractionByName(attraction).getSlot(time);
             System.out.println("vuelvo");
-
-            if(!repository.attractionHasCapacityAlready(attraction, day)) {
-                System.out.println("entro");
-                if(repository.addReservation(new Reservation(attraction, day, id, slot, PENDING))) {
-                    responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.PENDING)
-                            .setAttraction(attraction).setDay(day).setSlot(String.valueOf(slot)).build());
-                    responseObserver.onCompleted();
-                } else
-                    bookOnError("Reservation already exists", "Already exists", responseObserver);
-            } else {
-//                int capacity = repository.getRemainingCapacity(attraction, day, slot);
-//
-//                if(capacity <= 0) {
-//                    bookOnError("Slot is full", "Permission denied", responseObserver);
-//                }
-
-                if(repository.addReservation(new Reservation(attraction, day, id, slot, ReservationStatus.CONFIRMED))) {
-                    responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.CONFIRMED)
-                            .setAttraction(attraction).setDay(day).setSlot(String.valueOf(slot)).build());
-                    responseObserver.onCompleted();
-                } else {
-                    bookOnError("Unknown error", "Internal", responseObserver);
-                }
+            try {
+                ResStatus status = repository.addReservation(new Reservation(attraction, day, id, slot, null));
+                responseObserver.onNext(ReservationState.newBuilder().setStatus(status)
+                        .setAttraction(attraction).setDay(day).setSlot(String.valueOf(slot)).build());
+                responseObserver.onCompleted();
+            } catch (RuntimeException e) {
+                bookOnError(e.getMessage(), "Permission denied", responseObserver);
             }
+
         }
         System.out.println("salgo");
     }

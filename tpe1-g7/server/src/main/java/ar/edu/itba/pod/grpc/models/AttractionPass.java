@@ -6,6 +6,7 @@ import java.util.UUID;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import static ar.edu.itba.pod.grpc.requests.PassType.THREE;
 import static ar.edu.itba.pod.grpc.utils.LockUtils.*;
 
 public class AttractionPass {
@@ -35,14 +36,17 @@ public class AttractionPass {
     }
 
     public boolean rideConsumption() {
-        lockWrite(remainingLock);
-        if(remaining > 0) {
-            this.remaining--;
+        if(type == THREE) {
+            lockWrite(remainingLock);
+            if(remaining > 0) {
+                this.remaining--;
+                unlockWrite(remainingLock);
+                return true;
+            }
             unlockWrite(remainingLock);
-            return true;
+            return false;
         }
-        unlockWrite(remainingLock);
-        return false;
+        return true;
     }
 
     public void cancelConsumption() {

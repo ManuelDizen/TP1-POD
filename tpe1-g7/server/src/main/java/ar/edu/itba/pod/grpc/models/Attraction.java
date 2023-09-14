@@ -62,12 +62,14 @@ public class Attraction {
         capacities.put(day, capacity);
     }
 
-    public boolean initializeSlots(int day, int capacity) {
+    public void initializeSlots(int day, int capacity) {
 
         lockWrite(capacitiesLock);
 
-        if (!capacities.containsKey(day))
-            return false;
+        if(hasCapacityForDay(day)) {
+            unlockWrite(capacitiesLock);
+            throw new RuntimeException("Already has capacity for day");
+        }
 
         setCapacityForDay(day, capacity);
 
@@ -95,8 +97,6 @@ public class Attraction {
         unlockRead(followersLock);
 
         unlockWrite(capacitiesLock);
-
-        return true;
     }
 
     public boolean addReservation(Reservation reservation) {
@@ -195,11 +195,15 @@ public class Attraction {
         return getSpaceAvailable().get(day);
     }
 
-    public boolean hasCapacityForDay(int day){
-        lockRead(spacesLock);
-        boolean has = getSpaceAvailable().containsKey(day);
-        unlockRead(spacesLock);
+    public boolean hasCapacityAlready(int day) {
+        lockRead(capacitiesLock);
+        boolean has = hasCapacityForDay(day);
+        unlockRead(capacitiesLock);
         return has;
+    }
+
+    public boolean hasCapacityForDay(int day){
+        return capacities.containsKey(day);
     }
 
     public void freeLockWriteForSpacesAvailable(){

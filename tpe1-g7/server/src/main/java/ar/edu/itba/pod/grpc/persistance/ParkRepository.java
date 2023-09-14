@@ -1,13 +1,10 @@
 package ar.edu.itba.pod.grpc.persistance;
 
-import ar.edu.itba.pod.grpc.requests.PassType;
+import ar.edu.itba.pod.grpc.requests.*;
 import ar.edu.itba.pod.grpc.models.Attraction;
 import ar.edu.itba.pod.grpc.models.AttractionPass;
 import ar.edu.itba.pod.grpc.models.Reservation;
 import ar.edu.itba.pod.grpc.models.ReservationStatus;
-import ar.edu.itba.pod.grpc.requests.QueryCapacityModel;
-import ar.edu.itba.pod.grpc.requests.QueryConfirmedModel;
-import ar.edu.itba.pod.grpc.requests.SlotsReplyModel;
 
 
 import java.time.LocalTime;
@@ -62,10 +59,11 @@ public class ParkRepository {
         Attraction att = getAttractionByName(name);
         if(att == null) //TODO esto no hay chance que esté bien sincronizado, lo hago por devolver un error mas prolijo
             throw new RuntimeException("Attraction does not exist");
-        if(attractionHasCapacityAlready(name, day))
-            throw new RuntimeException("Attraction already has capacity loaded for day " + day + ".");
-        if(!att.initializeSlots(day, capacity))
-            throw new RuntimeException("Error instantiating the slots. Please try again");
+        try {
+            att.initializeSlots(day, capacity);
+        } catch (RuntimeException e) {
+            throw e;
+        }
         //TODO: ver si ese chequeo en el if está bien en términos de sync
         return updateReservations(name, day);
     }
@@ -161,11 +159,15 @@ public class ParkRepository {
 
     }
 
-    public boolean addReservation(Reservation reservation) {
+    public ResStatus addReservation(Reservation reservation) {
+
+        ResStatus status;
+
+        Attraction attraction = getAttractionByName(reservation.getAttractionName());
 
         AttractionPass pass = getAttractionPass(reservation.getVisitorId(), reservation.getDay());
         if(!pass.rideConsumption()) {
-            return false;
+            throw new RuntimeException("Invalid pass");
         }
 
         lockWrite(reservsLock);
@@ -173,7 +175,8 @@ public class ParkRepository {
         List<Reservation> reservs = reservations.get(reservation.getAttractionName());
 
         if(reservs.contains(reservation)) {
-            return false;
+            unlockWrite(reservsLock);
+            throw new RuntimeException("Reservation already exists");
         }
         reservs.add(reservation);
 
@@ -181,15 +184,20 @@ public class ParkRepository {
 
         unlockWrite(reservsLock);
 
-        if(reservation.getStatus() == CONFIRMED) {
-            Attraction attr = getAttractionByName(reservation.getAttractionName());
-            attr.addReservation(reservation);
+        if(attraction.hasCapacityAlready(reservation.getDay())) {
+            reservation.setStatus(CONFIRMED);
             reservation.setReserved(true);
+            status = ResStatus.CONFIRMED;
+        } else {
+            reservation.setStatus(PENDING);
+            status = ResStatus.PENDING;
         }
+
+        attraction.addReservation(reservation);
 
         manageNotifications(reservation);
 
-        return true;
+        return status;
 
     }
 
