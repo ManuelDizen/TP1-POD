@@ -41,7 +41,7 @@ public class PrintingUtils {
             System.out.println("Cannot add " + (expected-actual) + " attractions.");
         }
         if(actual != 0){
-            System.out.println(actual + " attractions added.");
+            System.out.println(actual + " attraction" + (expected==1?"":"s") + " added.");
         }
     }
 

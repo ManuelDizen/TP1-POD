@@ -66,7 +66,7 @@ public class AdminClient {
                             .build();
                     try{
                         Int32Value response = req.addRidesRequest(model);
-                        added += response.getValue();
+                        added++;
                         System.out.println(name + " ride added.");
                     }
                     catch(RuntimeException e){

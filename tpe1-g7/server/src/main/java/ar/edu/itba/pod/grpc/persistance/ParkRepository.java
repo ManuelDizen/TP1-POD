@@ -26,9 +26,9 @@ public class ParkRepository {
     private final List<AttractionPass> passes = new ArrayList<>();
     private final Map<String, List<Reservation>> reservations = new HashMap<>();
     private static ParkRepository repository;
-    private static ReadWriteLock attrLock = new ReentrantReadWriteLock(fairness4locks);
-    private static ReadWriteLock passLock = new ReentrantReadWriteLock(fairness4locks);
-    private static ReadWriteLock reservsLock = new ReentrantReadWriteLock(fairness4locks);
+    private static final ReadWriteLock attrLock = new ReentrantReadWriteLock(fairness4locks);
+    private static final ReadWriteLock passLock = new ReentrantReadWriteLock(fairness4locks);
+    private static final ReadWriteLock reservsLock = new ReentrantReadWriteLock(fairness4locks);
 
 
     public static ParkRepository getRepository(){
@@ -73,7 +73,11 @@ public class ParkRepository {
     public Attraction addRide(Attraction att) throws RuntimeException{
         lockWrite(attrLock);
 
-        if(!attractions.contains(att)) throw new RuntimeException("Attraction does not exist");
+        if(attractions.contains(att)) {
+            unlockWrite(attrLock);
+            throw new RuntimeException("Attraction already exists TOTO");
+        }
+
         attractions.add(att);
 
         unlockWrite(attrLock);

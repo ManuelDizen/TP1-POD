@@ -27,22 +27,13 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
         int capacity = request.getCapacity();
         String name = request.getRide();
 
-        /*TODO: Check si la mejor manera de validar es así imperativo.
-         O si las validations deberían ir en el syncrhonized
-
-        Estoy pensando que no queda thread safe si las validaciones se hacen por fuera del bloqeu sincronizado.
-        Discutir.
-        */
-
         if(day < 1 || day > 365){
-            responseObserver.onError(Status.INTERNAL.withDescription("Day is invalid").asRuntimeException());
-
-            //returnOnError("Invalid day: " + day + ".", responseObserver);
+            returnOnError("Invalid day: " + day + ".", responseObserver);
+            return;
         }
         if(capacity < 0){
-            responseObserver.onError(Status.INTERNAL.withDescription("Capacity cannot be 0").asRuntimeException());
-            //TODO: Ver como lidiar con esto
-            //returnOnError("Attraction " + name + " already has capacity for this day.", responseObserver);
+            returnOnError("Capacity cannot be 0 or negative.", responseObserver);
+            return;
         }
         SlotsReplyModel reply = null;
         try {
@@ -52,17 +43,14 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
                 responseObserver.onCompleted();
             }
             else{
-                responseObserver.onError(Status.INTERNAL.withDescription("Unknown error").asRuntimeException());
+                returnOnError("Unknown error", responseObserver);
+
             } //TODO ver como optimizar esto internamente
         }
         catch(RuntimeException e){
-            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
-        }
-    }
+            returnOnError(e.getMessage(), responseObserver);
 
-    private void returnOnError(String errMsg, StreamObserver<Int32Value> observer){
-        logger.error(errMsg);
-        observer.onError(Status.INTERNAL.withDescription(errMsg).asRuntimeException());
+        }
     }
 
     @Override
@@ -74,6 +62,7 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
         //TODO: Move validations to synchronized? Preguntar como
         if(day < 1 || day > 365){
             returnOnError("Day is invalid.", responseObserver);
+            return;
         }
         try{
             repository.addPass(new AttractionPass(id, type, day));
@@ -95,9 +84,11 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
 
         if(opening.isAfter(closing)){
             returnOnError("Error with times.",responseObserver);
+            return;
         }
         if(minsPerSlot <= 0 || Duration.between(opening, closing).toMinutes() < minsPerSlot){
             returnOnError("Invalid minutes per slot.", responseObserver);
+            return;
         }
 
         try{
@@ -113,6 +104,11 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
         catch(RuntimeException e){
             returnOnError(e.getMessage(), responseObserver);
         }
+    }
+
+    private <T> void returnOnError(String errMsg, StreamObserver<T> observer){
+        logger.error(errMsg);
+        observer.onError(Status.INTERNAL.withDescription(errMsg).asRuntimeException());
     }
 
 }
