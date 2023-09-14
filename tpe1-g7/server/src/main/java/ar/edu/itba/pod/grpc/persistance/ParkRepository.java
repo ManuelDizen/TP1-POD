@@ -17,6 +17,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 import static ar.edu.itba.pod.grpc.models.ReservationStatus.*;
+import static ar.edu.itba.pod.grpc.requests.PassType.HALF_DAY;
 import static ar.edu.itba.pod.grpc.requests.PassType.THREE;
 import static ar.edu.itba.pod.grpc.utils.LockUtils.*;
 
@@ -63,7 +64,7 @@ public class ParkRepository {
         Attraction att = getAttractionByName(name);
         if(!att.initializeSlots(day, capacity))
             return null;
-        return updateReservations(name, day, capacity);
+        return updateReservations(name, day);
     }
 
     public Attraction addRide(Attraction att){
@@ -270,8 +271,7 @@ public class ParkRepository {
         return confirmedList;
     }
 
-    private SlotsReplyModel updateReservations(String name, int day, int capacity){
-        //TODO LOCKSSSSSS!!!!!!!!!!!!!!!!!
+    private SlotsReplyModel updateReservations(String name, int day){
         int confirmed = 0, cancelled = 0, relocated = 0;
 
         //Method called when an attraction receives a capacity so that it confirms/denies/relocates reservations
@@ -279,7 +279,15 @@ public class ParkRepository {
                 .filter(r -> r.getDay() == day && r.getStatus() == PENDING)
                 .toList());
 
-        attReservs.sort((Comparator.comparing(Reservation::getCreatedAt)));
+        attReservs.sort((new Comparator<Reservation>() {
+            @Override
+            public int compare(Reservation o1, Reservation o2) {
+                return o1.getCreatedAt().compareTo(o2.getCreatedAt());
+            }
+        }));
+
+        for(Reservation res : attReservs)
+            System.out.println(res.getDay() + " - " + res.getSlot());
 
         //Tengo las reservas del día que todavía estan pendientes (es decir, las otras que estaban para ese dia
         // estan confirmadas o canceladas).
@@ -293,43 +301,50 @@ public class ParkRepository {
 
             if(vacants > 0){
                 // Tengo lugar para la reserva pedida. Confirmo, y bajo capacidad en mapa
-                r.setStatus(ReservationStatus.CONFIRMED);
+                confirmReservation(r);
                 capacities.put(prevSlot, capacities.get(r.getSlot()) - 1);
+                r.setReserved(true);
                 confirmed++;
             }
             else{
                 // Si no hay lugar, tengo que buscar el primer slot disponible posterior a este para confirmarla
                 // Si no encuentro slot, la cancelo
+                AttractionPass pass = getAttractionPass(r.getVisitorId(), r.getDay());
                 LocalTime firstAvailable = null;
                 TreeSet<LocalTime> keySet = new TreeSet<>(capacities.keySet());
                 List<LocalTime> orderedKeys = new ArrayList<>(keySet).stream()
                         .filter(a -> a.isAfter(r.getSlot())) // No testeo el == porque con vacants lo chequee
                         .toList();
                 for(LocalTime t : orderedKeys){ //TODO: Debería hacerlo pero corroborar que itere en orden
+                    if(pass.getType() == HALF_DAY && t.isAfter(LocalTime.of(14,0))) {
+                        r.setStatus(CANCELLED);
+                        cancelled++;
+                        break;
+                    }
                     if(capacities.get(t) > 0){
                         firstAvailable = t;
                         break;
                     }
                 }
-                System.out.println("first available: " + firstAvailable);
+
                 if(firstAvailable != null){
-                    //TODO IMPORTANTE: Si pase es de medio dia, y la reserva se mueve para después, SE CANCELA
                     r.setStatus(PENDING);
                     r.setSlot(firstAvailable);
                     capacities.put(firstAvailable, capacities.get(firstAvailable)-1);
+                    r.setReserved(true);
                     relocated++;
                     updated = true;
 
                 }
                 else{
-                    r.setStatus(ReservationStatus.CANCELLED); // No hay espacio en ningún slot, se cancela
+                    r.setStatus(CANCELLED); // No hay espacio en ningún slot, se cancela;
                     cancelled++;
                 }
             }
             if(updated){
                 manageNotifications(r, "The reservation for " + r.getAttractionName() + " at "
-                + prevSlot.toString() + " on the day " + day + " was moved to " + r.getSlot().toString()
-                + " and is " + r.getStatus().toString());
+                        + prevSlot.toString() + " on the day " + day + " was moved to " + r.getSlot().toString()
+                        + " and is " + r.getStatus().toString());
             }
             else{
                 manageNotifications(r);
