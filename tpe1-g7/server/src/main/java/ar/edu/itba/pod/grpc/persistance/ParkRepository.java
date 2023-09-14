@@ -279,19 +279,27 @@ public class ParkRepository {
         for (Attraction attr : attractionList) {
             if (!attractionHasCapacityAlready(attr.getName(), day)) {
                 PRDay = reservations.get(attr.getName()).stream().filter(a -> a.getDay() == day && a.getStatus() == PENDING).toList();
-                for (Reservation reservation : PRDay) {
+                if(!PRDay.isEmpty()) {
                     Map<LocalTime, Long> acc = PRDay.stream().collect(
                             Collectors.groupingBy(Reservation::getSlot, Collectors.counting())
                     );
-                    LocalTime maxSlot = acc.entrySet().stream().max(Map.Entry.comparingByValue())
+                    LocalTime maxSlot = acc.entrySet().stream().sorted(Map.Entry.comparingByKey())
+                            .max(Map.Entry.comparingByValue())
                             .map(Map.Entry::getKey).orElse(null);
                     QueryCapacityModel capacityModel = QueryCapacityModel.newBuilder()
                             .setSlot(maxSlot.toString())
                             .setCapacity(acc.get(maxSlot).intValue())
-                            .setAttraction(reservation.getAttractionName())
+                            .setAttraction(attr.getName())
                             .build();
                     capacityList.add(capacityModel);
-                }
+                } else {
+                        QueryCapacityModel capacityModel = QueryCapacityModel.newBuilder()
+                                .setSlot(attr.getOpening().toString())
+                                .setCapacity(0)
+                                .setAttraction(attr.getName())
+                                .build();
+                        capacityList.add(capacityModel);
+                    }
             }
         }
         unlockRead(reservsLock);
@@ -300,7 +308,7 @@ public class ParkRepository {
             if(diff == 0)
                 diff = o1.getAttraction().compareTo(o2.getAttraction());
             return diff;
-        }); //TODO CAMBIAR POR ORDEN DE CONFIRMACIÓN
+        });
         return capacityList;
     }
 
