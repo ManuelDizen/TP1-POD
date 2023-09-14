@@ -62,10 +62,6 @@ public class Attraction {
         return map;
     }
 
-    private void setCapacityForDay(int day, int capacity) {
-        capacities.put(day, capacity);
-    }
-
     public void initializeSlots(int day, int capacity) {
 
         lockWrite(capacitiesLock);
@@ -125,88 +121,6 @@ public class Attraction {
         unlockWrite(spacesLock);
     }
 
-    public LocalTime getSlot(LocalTime slot) {
-
-        int i;
-
-        for (i = 0; opening.plusMinutes((long) minsPerSlot * i).isBefore(slot) ||
-                opening.plusMinutes((long) minsPerSlot * i).equals(slot); i++)
-            ;
-
-        return opening.plusMinutes((long) minsPerSlot * (i - 1));
-    }
-
-    public List<Follower> getFollowers() {
-        lockRead(followersLock);
-        List<Follower> f = followers;
-        unlockRead(followersLock);
-        return f;
-    }
-
-    public void addFollower(Follower f) {
-        lockWrite(followersLock);
-        followers.add(f);
-        unlockWrite(followersLock);
-        f.sendMessage("User " + f.getVisitorId().toString() + " is now following attraction " + this.getName()
-                + " for day " + f.getDay());
-    }
-
-    public boolean checkToNotify(Reservation reservation) {
-        lockRead(followersLock);
-        boolean notify = followers.stream()
-                .anyMatch(
-                        a -> a.getDay() == reservation.getDay() && a.getVisitorId().equals(reservation.getVisitorId())
-                );
-        unlockRead(followersLock);
-        return notify;
-    }
-
-    public void unsubscribeFollower(UUID visitorId, int day) {
-        lockWrite(followersLock);
-        Follower f = followers.stream().filter(follower -> follower.getDay() == day
-                && follower.getVisitorId().equals(visitorId)).findFirst().orElseThrow();
-        f.close();
-        followers.remove(f);
-        unlockWrite(followersLock);
-    }
-
-    public boolean isVisitorSubscribedForDay(Follower f) {
-        lockRead(followersLock);
-        boolean has = followers.contains(f);
-        unlockRead(followersLock);
-        return has;
-    }
-
-    public boolean isVisitorSubscribedForDay(UUID visitorId, int day) {
-        return isVisitorSubscribedForDay(new Follower(visitorId, day, null));
-    }
-
-    public void notifyReservation(int day, UUID id, Reservation r) {
-        lockRead(followersLock);
-        Follower f = followers.stream().filter(a -> a.getDay() == day && a.getVisitorId().equals(id)).findFirst().orElseThrow(); // No debería pasar
-        unlockRead(followersLock);
-        f.sendMessage("The reservation for " + this.getName() + " at " + r.getSlot().toString() +
-                " on the day " + day + " is " + r.getStatus().toString());
-    }
-
-    public void notifyReservation(int day, UUID id, Reservation r, String message) {
-        lockRead(followersLock);
-        Follower f = followers.stream().filter(a -> a.getDay() == day && a.getVisitorId().equals(id)).findFirst().orElseThrow(); // No debería pasar
-        unlockRead(followersLock);
-        f.sendMessage(message);
-    }
-
-    public void updateSlots(int day, LocalTime slot, int capacity) {
-        lockWrite(spacesLock);
-        spaceAvailable.get(day).put(slot, capacity);
-        unlockWrite(spacesLock);
-    }
-
-    public Map<LocalTime, Integer> lockWriteAndGetSpacesAvailableForDay(int day) {
-        lockWrite(spacesLock);
-        return getSpaceAvailable().get(day);
-    }
-
     public boolean hasCapacityAlready(int day) {
         lockRead(capacitiesLock);
         boolean has = hasCapacityForDay(day);
@@ -231,21 +145,88 @@ public class Attraction {
         return capacity;
     }
 
+    private void setCapacityForDay(int day, int capacity) {
+        capacities.put(day, capacity);
+    }
+
+    public LocalTime getSlot(LocalTime slot) {
+
+        int i;
+
+        for (i = 0; opening.plusMinutes((long) minsPerSlot * i).isBefore(slot) ||
+                opening.plusMinutes((long) minsPerSlot * i).equals(slot); i++)
+            ;
+
+        return opening.plusMinutes((long) minsPerSlot * (i - 1));
+    }
+
+    public boolean checkToNotify(Reservation reservation) {
+        lockRead(followersLock);
+        boolean notify = followers.stream()
+                .anyMatch(
+                        a -> a.getDay() == reservation.getDay() && a.getVisitorId().equals(reservation.getVisitorId())
+                );
+        unlockRead(followersLock);
+        return notify;
+    }
+    public List<Follower> getFollowers() {
+        lockRead(followersLock);
+        List<Follower> f = followers;
+        unlockRead(followersLock);
+        return f;
+    }
+
+    public void addFollower(Follower f) {
+        lockWrite(followersLock);
+        followers.add(f);
+        unlockWrite(followersLock);
+        f.sendMessage("User " + f.getVisitorId().toString() + " is now following attraction " + this.getName()
+                + " for day " + f.getDay());
+    }
+
+    public void unsubscribeFollower(UUID visitorId, int day) {
+        lockWrite(followersLock);
+        Follower f = followers.stream().filter(follower -> follower.getDay() == day
+                && follower.getVisitorId().equals(visitorId)).findFirst().orElseThrow();
+        f.close();
+        followers.remove(f);
+        unlockWrite(followersLock);
+    }
+
+    public boolean isVisitorSubscribedForDay(UUID visitorId, int day) {
+        return isVisitorSubscribedForDay(new Follower(visitorId, day, null));
+    }
+
+    private boolean isVisitorSubscribedForDay(Follower f) {
+        lockRead(followersLock);
+        boolean has = followers.contains(f);
+        unlockRead(followersLock);
+        return has;
+    }
+
+
+    public void notifyReservation(int day, UUID id, Reservation r) {
+        lockRead(followersLock);
+        Follower f = followers.stream().filter(a -> a.getDay() == day && a.getVisitorId().equals(id)).findFirst().orElseThrow(); // No debería pasar
+        unlockRead(followersLock);
+        f.sendMessage("The reservation for " + this.getName() + " at " + r.getSlot().toString() +
+                " on the day " + day + " is " + r.getStatus().toString());
+    }
+
+    public void notifyReservation(int day, UUID id, Reservation r, String message) {
+        lockRead(followersLock);
+        Follower f = followers.stream().filter(a -> a.getDay() == day && a.getVisitorId().equals(id)).findFirst().orElseThrow(); // No debería pasar
+        unlockRead(followersLock);
+        f.sendMessage(message);
+    }
+
+    public Map<LocalTime, Integer> lockWriteAndGetSpacesAvailableForDay(int day) {
+        lockWrite(spacesLock);
+        return getSpaceAvailable().get(day);
+    }
 
     public void freeLockWriteForSpacesAvailable(){
         unlockWrite(spacesLock);
-    }
-
-    public ReadWriteLock getSpacesLock() {
-        return spacesLock;
-    }
-
-    public ReadWriteLock getCapacitiesLock() {
-        return capacitiesLock;
-    }
-
-    public ReadWriteLock getFollowersLock() {
-        return followersLock;
     }
 
     @Override
