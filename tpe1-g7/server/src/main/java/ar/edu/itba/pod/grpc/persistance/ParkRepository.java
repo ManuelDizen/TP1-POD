@@ -406,9 +406,18 @@ public class ParkRepository {
     }
 
     public void confirmReservation(String name, int day, LocalTime slot, UUID visitorId) throws RuntimeException {
+
+        Attraction attraction = getAttractionByName(name);
+
         lockWrite(reservsLock);
+
+        if(!attraction.hasCapacityAlready(day)) {
+            unlockWrite(reservsLock);
+            throw new RuntimeException("No capacity yet for this day");
+        }
+
         Optional<Reservation> r = getReservation(name, day, slot, visitorId);
-        if(r.isEmpty() || r.get().getStatus() == CONFIRMED) {
+        if(r.isEmpty() || r.get().getStatus() != PENDING) {
             unlockWrite(reservsLock);
             throw new RuntimeException("No pending reservations found");
         }
