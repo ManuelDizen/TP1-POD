@@ -168,6 +168,8 @@ public class ParkRepository {
 
         Attraction attraction = getAttractionByName(reservation.getAttractionName());
 
+        lockWrite(reservsLock);
+
         Optional<AttractionPass> pass = getAttractionPass(reservation.getVisitorId(), reservation.getDay());
         if(pass.isEmpty())
             throw new RuntimeException("Visitor does not have pass for that day");
@@ -194,7 +196,6 @@ public class ParkRepository {
         }
 
         //necesito el lock para escribir en la clase reservations
-        lockWrite(reservsLock);
 
         List<Reservation> reservs = reservations.get(reservation.getAttractionName());
 
@@ -325,16 +326,12 @@ public class ParkRepository {
             }
         }));
 
-        for(Reservation res : attReservs)
-            System.out.println(res.getDay() + " - " + res.getSlot());
 
         // (2) Acá se está haciendo un acceso directo a los spacesAvailable (mal). Toca modificarlo,
         // y además cuidar que mientras analice las reservas pendientes no me confirmen cambien ninguna
         // (recordar que holdeo lock de reservas)
 
-        lockRead(attrLock);
         Attraction attr = getAttractionByName(name);
-        unlockRead(attrLock);
 
         // Para esto, creo método que permite acceder a la instancia de la atracción, y holdear el lock de escritura
         Map<LocalTime, Integer> capacities = attr.lockWriteAndGetSpacesAvailableForDay(day);
@@ -357,7 +354,7 @@ public class ParkRepository {
             else{
                 // Si no hay lugar, tengo que buscar el primer slot disponible posterior a este para confirmarla
                 // Si no encuentro slot, la cancelo
-                AttractionPass pass = getAttractionPass(r.getVisitorId(), r.getDay());
+                AttractionPass pass = getAttractionPass(r.getVisitorId(), r.getDay()).get();
                 LocalTime firstAvailable = null;
                 TreeSet<LocalTime> keySet = new TreeSet<>(capacities.keySet());
                 List<LocalTime> orderedKeys = new ArrayList<>(keySet).stream()
@@ -365,8 +362,7 @@ public class ParkRepository {
                         .toList();
                 for(LocalTime t : orderedKeys){ //TODO: Debería hacerlo pero corroborar que itere en orden
                     if(pass.getType() == HALF_DAY && t.isAfter(LocalTime.of(14,0))) {
-                        r.setStatus(CANCELLED);
-                        cancelled++;
+                        cancelReservation(r, pass);
                         break;
                     }
                     if(capacities.get(t) > 0){
@@ -383,7 +379,7 @@ public class ParkRepository {
                     updated = true;
                 }
                 else{
-                    r.setStatus(CANCELLED); // No hay espacio en ningún slot, se cancela;
+                    cancelReservation(r, pass);
                     cancelled++;
                 }
             }
@@ -446,14 +442,26 @@ public class ParkRepository {
         if(pass.get().getType() == THREE)
             pass.get().cancelConsumption();
         if(reservation.isReserved()) {
-            lockRead(attrLock);
+
             Attraction att = getAttractionByName(name);
-            unlockRead(attrLock);
+
             att.cancelReservation(reservation);
             reservation.setReserved(false);
         }
         reservation.setStatus(CANCELLED);
     }
+
+    private void confirmReservation(Reservation reservation) {
+        reservation.setStatus(CONFIRMED);
+        reservation.setConfirmedAt(LocalDateTime.now());
+    }
+
+    private void cancelReservation(Reservation reservation, AttractionPass pass) {
+        reservation.setStatus(CANCELLED);// No hay espacio en ningún slot, se cancela;
+        if(pass.getType() == THREE)
+            pass.cancelConsumption();
+    }
+
 
     public boolean visitorCanVisit(Reservation reservation, AttractionPass pass) {
 
