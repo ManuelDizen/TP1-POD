@@ -30,7 +30,7 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
             returnOnError("Invalid day: " + day + ".", responseObserver);
             return;
         }
-        if(capacity < 0){
+        if(capacity <= 0){
             returnOnError("Capacity cannot be 0 or negative.", responseObserver);
             return;
         }
