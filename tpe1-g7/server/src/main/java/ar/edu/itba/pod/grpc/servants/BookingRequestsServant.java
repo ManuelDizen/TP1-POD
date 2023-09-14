@@ -52,49 +52,18 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
 
     public void checkAvailability(AvailabilityRequestModel request, StreamObserver<AvailabilityResponseModel> responseObserver) {
 
-        String name = request.getAttraction();
-        Attraction att = repository.getAttractionByName(name);
-        if(att == null) {
-            responseObserver.onError(Status.NOT_FOUND.withDescription("Ride not found").asRuntimeException());
-        } else {
-            int day = request.getDay();
+        int day = request.getDay();
+        String attraction = request.getAttraction();
 
-            if(day < 1 || day > 365){
-                responseObserver.onError(Status.INTERNAL.withDescription("Day is invalid").asRuntimeException());
+        if(checkAvailabilityParameters(attraction, day, responseObserver)){
+            if(!checkSlots(attraction, request.getSlotsList())) {
+                responseObserver.onError(Status.INTERNAL.withDescription("Invalid slot").asRuntimeException());
             } else {
-                if(!checkSlots(name, request.getSlotsList())) {
-                    responseObserver.onError(Status.INTERNAL.withDescription("Invalid slot").asRuntimeException());
-                } else {
-                    List<LocalTime> slots = repository.getSlotsInterval(name, request.getSlotsList());
-                    Map<Integer, Integer> capacities = att.getCapacities();
-
-                    //busco la capacidad para ese día de esa atracción
-                    int capacity = 0;
-                    if (!capacities.isEmpty())
-                        capacity = capacities.get(day);
-
-                    List<AvailabilityResponse> responseList = new ArrayList<>();
-
-                    for (LocalTime s : slots) {
-
-                        if (!repository.isValidSlot(name, s))
-                            responseObserver.onError(Status.INTERNAL.withDescription("Slot is invalid").asRuntimeException());
-
-                        int pending = repository.getReservations(name, day, s, PENDING);
-                        int confirmed = repository.getReservations(name, day, s, CONFIRMED);
-
-                        AvailabilityResponse response = AvailabilityResponse.newBuilder().setAttraction(name)
-                                .setSlot(String.valueOf(s))
-                                .setCapacity(capacity)
-                                .setPending(pending)
-                                .setConfirmed(confirmed).build();
-                        responseList.add(response);
-                    }
-                    responseObserver.onNext(AvailabilityResponseModel.newBuilder().addAllAvailability(responseList).build());
-                    responseObserver.onCompleted();
-                }
+                List<LocalTime> slots = repository.getSlotsInterval(attraction, request.getSlotsList());
+                List<AvailabilityResponse> responseList = repository.getAvailability(attraction, day, slots);
+                responseObserver.onNext(AvailabilityResponseModel.newBuilder().addAllAvailability(responseList).build());
+                responseObserver.onCompleted();
             }
-
         }
 
     }
@@ -109,46 +78,27 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
             responseObserver.onError(Status.INTERNAL.withDescription("Day is invalid").asRuntimeException());
         } else {
             for(Attraction att : attractions) {
-                List<LocalTime> slots = repository.getSlotsInterval(att.getName(), request.getSlotsList());
-
-                Map<Integer, Integer> capacities = att.getCapacities();
-
-                //busco la capacidad para ese día de esa atracción
-                int capacity = 0;
-                if(!capacities.isEmpty())
-                    capacity = capacities.get(day);
-
-
-                for(LocalTime s : slots) {
-
-                    if(!repository.isValidSlot(att.getName(), s))
-                        responseObserver.onError(Status.INTERNAL.withDescription("Slot is invalid").asRuntimeException());
-
-                    int pending = repository.getReservations(att.getName(), day, s, PENDING);
-                    int confirmed = repository.getReservations(att.getName(), day, s, CONFIRMED);
-
-                    AvailabilityResponse response = AvailabilityResponse.newBuilder().setAttraction(att.getName())
-                            .setSlot(String.valueOf(s))
-                            .setCapacity(capacity)
-                            .setPending(pending)
-                            .setConfirmed(confirmed).build();
-                    responseList.add(response);
+                if(!checkSlots(att.getName(), request.getSlotsList())) {
+                    responseObserver.onError(Status.INTERNAL.withDescription("Invalid slot").asRuntimeException());
+                } else {
+                    List<LocalTime> slots = repository.getSlotsInterval(att.getName(), request.getSlotsList());
+                    responseList.addAll(repository.getAvailability(att.getName(), day, slots));
                 }
             }
+                responseList.sort((p1, p2) -> {
+                    int c = p1.getSlot().compareTo(p2.getSlot());
+                    if (c == 0) {
+                        return (p1.getAttraction().compareTo(p2.getAttraction()));
+                    } else {
+                        return c;
+                    }
+                });
 
-            responseList.sort((p1, p2) -> {
-                int c = p1.getSlot().compareTo(p2.getSlot());
-                if (c == 0) {
-                    return (p1.getAttraction().compareTo(p2.getAttraction()));
-                } else {
-                    return c;
+                responseObserver.onNext(AvailabilityResponseModel.newBuilder().addAllAvailability(responseList).build());
+                responseObserver.onCompleted();
                 }
-            });
-
-            responseObserver.onNext(AvailabilityResponseModel.newBuilder().addAllAvailability(responseList).build());
-            responseObserver.onCompleted();
-        }
     }
+
 
     private boolean checkSlots(String att, List<String> slots) {
         for(String slot : slots) {
@@ -242,6 +192,21 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
 
         if(!repository.isValidSlot(name, time)) {
             bookOnError("Slot is invalid", "Internal", responseObserver);
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean checkAvailabilityParameters(String name, int day, StreamObserver<AvailabilityResponseModel> responseObserver) {
+
+        if(!repository.attractionExists(name)) {
+            responseObserver.onError(Status.NOT_FOUND.withDescription("Ride not found").asRuntimeException());
+            return false;
+        }
+
+        if(day < 1 || day > 365){
+            responseObserver.onError(Status.INTERNAL.withDescription("Day is invalid").asRuntimeException());
             return false;
         }
 

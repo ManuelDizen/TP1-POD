@@ -5,6 +5,7 @@ import ar.edu.itba.pod.grpc.models.Attraction;
 import ar.edu.itba.pod.grpc.models.AttractionPass;
 import ar.edu.itba.pod.grpc.models.Reservation;
 import ar.edu.itba.pod.grpc.models.ReservationStatus;
+import io.grpc.Status;
 
 
 import java.time.LocalDateTime;
@@ -108,6 +109,32 @@ public class ParkRepository {
 
     }
 
+    public List<AvailabilityResponse> getAvailability(String name, int day, List<LocalTime> slots) {
+
+        Attraction att = getAttractionByName(name);
+
+        int capacity = att.getCapacityForDay(day);
+
+        List<AvailabilityResponse> responseList = new ArrayList<>();
+
+        lockWrite(reservsLock);
+        for (LocalTime s : slots) {
+
+            int pending = getReservations(name, day, s, PENDING);
+            int confirmed = getReservations(name, day, s, CONFIRMED);
+
+            AvailabilityResponse response = AvailabilityResponse.newBuilder().setAttraction(name)
+                    .setSlot(String.valueOf(s))
+                    .setCapacity(capacity)
+                    .setPending(pending)
+                    .setConfirmed(confirmed).build();
+            responseList.add(response);
+        }
+        unlockWrite(reservsLock);
+
+        return responseList;
+    }
+
     public boolean isValidSlot(String attraction, LocalTime slot) {
         Attraction att = getAttractionByName(attraction);
         if(!att.getSlot(slot).equals(slot))
@@ -124,7 +151,10 @@ public class ParkRepository {
     }
 
     public List<Attraction> getAttractions() {
-        return attractions;
+        lockRead(attrLock);
+        List<Attraction> atts = attractions;
+        unlockRead(attrLock);
+        return atts;
     }
 
     public void manageNotifications(Reservation reservation){
@@ -236,11 +266,9 @@ public class ParkRepository {
     }
 
     public int getReservations(String attraction, int day, LocalTime slot, ReservationStatus status) {
-        lockRead(reservsLock);
         List<Reservation> reservationsForAttraction = reservations.get(attraction);
         int n = (int) reservationsForAttraction.stream()
                 .filter(a ->  a.getDay() == day && a.getSlot().equals(slot) && a.getStatus() == status).count();
-        unlockRead(reservsLock);
         return n;
     }
 

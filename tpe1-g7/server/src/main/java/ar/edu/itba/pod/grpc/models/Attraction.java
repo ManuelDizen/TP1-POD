@@ -1,11 +1,15 @@
 package ar.edu.itba.pod.grpc.models;
 
 
+import ar.edu.itba.pod.grpc.requests.AvailabilityResponse;
+
 import java.time.LocalTime;
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import static ar.edu.itba.pod.grpc.models.ReservationStatus.CONFIRMED;
+import static ar.edu.itba.pod.grpc.models.ReservationStatus.PENDING;
 import static ar.edu.itba.pod.grpc.utils.LockUtils.*;
 
 public class Attraction {
@@ -213,6 +217,20 @@ public class Attraction {
     public boolean hasCapacityForDay(int day){
         return capacities.containsKey(day);
     }
+
+    public int getCapacityForDay(int day) {
+        lockRead(capacitiesLock);
+        Map<Integer, Integer> capacities = getCapacities();
+
+        //busco la capacidad para ese día de esa atracción
+        int capacity = 0;
+        if (!capacities.isEmpty())
+            capacity = capacities.get(day);
+
+        unlockRead(capacitiesLock);
+        return capacity;
+    }
+
 
     public void freeLockWriteForSpacesAvailable(){
         unlockWrite(spacesLock);
