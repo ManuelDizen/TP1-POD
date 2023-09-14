@@ -56,7 +56,7 @@ public class BookingClient {
                     printBookingReply(response);
                 }
                 catch(RuntimeException e){
-                    System.out.println("Error booking: " + e.getMessage());
+                    System.out.println("Error booking - " + e.getMessage());
                 }
             }
             case "confirm" -> {
@@ -66,7 +66,7 @@ public class BookingClient {
                     printBookingReply(response);
                 }
                 catch(RuntimeException e){
-                    System.out.println("Error booking: " + e.getMessage());
+                    System.out.println("Error booking - " + e.getMessage());
                 }
             }
             case "cancel" -> {
@@ -76,7 +76,7 @@ public class BookingClient {
                     printBookingReply(response);
                 }
                 catch(RuntimeException e){
-                    System.out.println("Error booking: " + e.getMessage());
+                    System.out.println("Error booking - " + e.getMessage());
                 }
             }
             default -> System.out.println("Invalid action. Please try again.");
@@ -105,8 +105,12 @@ public class BookingClient {
         Optional<String> attraction = ParsingUtils.getSystemProperty(PropertyNames.RIDE);
         AvailabilityResponseModel response;
         if(attraction.isEmpty()) {
-            response = req.checkAvailabilityAllAttractions(AvailabilityRequestModel.newBuilder()
-                    .setDay(day).addAllSlots(slots).build());
+            try {
+                response = req.checkAvailabilityAllAttractions(AvailabilityRequestModel.newBuilder()
+                        .setDay(day).addAllSlots(slots).build());
+            } catch (RuntimeException e) {
+                System.out.println("Error - " + e.getMessage());
+            }
         } else {
             response = req.checkAvailability(AvailabilityRequestModel.newBuilder()
                     .setAttraction(attraction.get()).setDay(day).addAllSlots(slots).build());

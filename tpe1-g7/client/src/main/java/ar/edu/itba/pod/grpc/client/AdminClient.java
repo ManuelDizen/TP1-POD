@@ -76,7 +76,7 @@ public class AdminClient {
                         System.out.println(name + " ride added.");
                     }
                     catch(RuntimeException e){
-                        System.out.println("Cannot add ride " + name + ": " + e.getMessage());
+                        System.out.println("Cannot add ride " + name + " - " + e.getMessage());
                     }
                 }
                 PrintingUtils.printRidesReply(entries.size(), added);
