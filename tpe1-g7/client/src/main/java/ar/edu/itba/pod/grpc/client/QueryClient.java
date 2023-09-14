@@ -13,20 +13,30 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
 public class QueryClient {
     private static final Logger logger = LoggerFactory.getLogger(AdminClient.class);
-    //TODO: checkear que los parametros de entrada sean correctos
+
     public static void main(String[] args) throws InterruptedException {
         logger.info("QueryClient starting...");
 
-        String action = ParsingUtils.getSystemProperty(PropertyNames.ACTION).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
-        //TODO: NullPointerDereference
         String serverAddress = ParsingUtils.getSystemProperty(PropertyNames.SERVER_ADDRESS).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
-        String outPath = ParsingUtils.getSystemProperty(PropertyNames.OUT_PATH).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
 
         ManagedChannel channel = ConnectionUtils.createNewChannel(serverAddress);
+
+        String action = null;
+        try {
+            action = ParsingUtils.getSystemProperty(PropertyNames.ACTION).orElseThrow();
+        }
+        catch(NoSuchElementException e){
+            System.out.println("Action requested is invalid. Please check action is one of the following options:\n[capacity|confirmed]");
+            channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
+            return;
+        }
+
+        String outPath = ParsingUtils.getSystemProperty(PropertyNames.OUT_PATH).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
 
         QueryRequestsServiceGrpc.QueryRequestsServiceBlockingStub req =
                 QueryRequestsServiceGrpc.newBlockingStub(channel);
@@ -37,21 +47,27 @@ public class QueryClient {
                 int dayC = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow(() -> new RuntimeException("Error parsing parameter")));
                 QueryRequestModel modelC = QueryRequestModel.newBuilder().setDay(dayC).build();
                 List<QueryCapacityModel> capacityList = new ArrayList<>();
-                req.getCapacityRequest(modelC).forEachRemaining(capacityList::add);
-                //TODO: try catch or validar lista vacia del lado del cliente
-                writeCapacityOutput(capacityList, outPath);
+                try {
+                    req.getCapacityRequest(modelC).forEachRemaining(capacityList::add);
+                    writeCapacityOutput(capacityList, outPath);
+                } catch(RuntimeException e){
+                    System.out.println("Error doing query: " + e.getMessage());
+                }
                 break;
             case "confirmed":
                 logger.info("QueryClient confirmed...");
                 int day = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow(() -> new RuntimeException("Error parsing parameter")));
                 QueryRequestModel model = QueryRequestModel.newBuilder().setDay(day).build();
                 List<QueryConfirmedModel> confirmedList = new ArrayList<>();
-                req.getConfirmedRequest(model).forEachRemaining(confirmedList::add);
-                //TODO: try catch or validar lista vacia del lado del cliente
-                writeConfirmedOutput(confirmedList, outPath);
+                try {
+                    req.getConfirmedRequest(model).forEachRemaining(confirmedList::add);
+                    writeConfirmedOutput(confirmedList, outPath);
+                } catch(RuntimeException e){
+                    System.out.println("Error doing query: " + e.getMessage());
+                }
                 break;
         }
-        channel.shutdownNow().awaitTermination(10, TimeUnit.SECONDS);
+        channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
     }
 
     private static void writeOnFile(StringBuilder output, String outPath) {

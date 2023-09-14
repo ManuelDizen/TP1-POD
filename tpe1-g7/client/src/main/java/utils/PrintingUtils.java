@@ -32,13 +32,14 @@ public class PrintingUtils {
     }
 
     public static void printAvailability(List<AvailabilityResponse> availability) {
-
-        System.out.println("Slot  | Capacity | Pending | Confirmed | Attraction");
-
-        for(AvailabilityResponse a : availability) {
-            System.out.println(a.getSlot() + " |    " +(a.getCapacity() != 0 ? a.getCapacity() : "X") + "    |    " + a.getPending() + "    |    " + a.getConfirmed() + "    | " + a.getAttraction());
+        if (availability.isEmpty()) {
+            System.out.println("There are no available slots.");
+        } else {
+            System.out.println("Slot  | Capacity | Pending | Confirmed | Attraction");
+            for (AvailabilityResponse a : availability) {
+                System.out.println(a.getSlot() + " |    " + (a.getCapacity() != 0 ? a.getCapacity() : "X") + "    |    " + a.getPending() + "    |    " + a.getConfirmed() + "    | " + a.getAttraction());
+            }
         }
-
     }
 
     public static void printRidesReply(int expected, int actual){
