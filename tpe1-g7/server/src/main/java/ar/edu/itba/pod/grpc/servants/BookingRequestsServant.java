@@ -167,7 +167,7 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
 
             try {
                 repository.cancelReservation(attraction, day, slot, id);
-                responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.CONFIRMED).
+                responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.CANCELLED).
                         setAttraction(attraction).setDay(day).setSlot(String.valueOf(slot)).build());
                 responseObserver.onCompleted();
             } catch (RuntimeException e) {
