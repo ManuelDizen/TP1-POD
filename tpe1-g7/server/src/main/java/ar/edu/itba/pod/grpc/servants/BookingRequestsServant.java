@@ -23,8 +23,6 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
     public void getAttractionsRequest(Empty request,
                                       StreamObserver<RidesResponseModel> responseObserver){
 
-        //busco las attractions del repository, y las devuelvo
-
         List<Attraction> attractions = repository.getAttractions();
 
         List<RidesRequestModel> rides = new ArrayList<>();
@@ -116,7 +114,6 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
             {
 
             try {
-                //hago la reserva, obtengo el estado de la misma
                 ResStatus status = repository.addReservation(new Reservation(attraction, day, id, slot, null));
                 responseObserver.onNext(ReservationState.newBuilder().setStatus(status)
                         .setAttraction(attraction).setDay(day).setSlot(String.valueOf(slot)).build());

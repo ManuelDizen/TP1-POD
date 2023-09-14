@@ -31,7 +31,6 @@ public class Attraction {
         this.minsPerSlot = minsPerSlot;
     }
 
-    //Nota a quién corresponda: Ciertos campos son final e inmutables, no es necesario protegerlos para su acceso.
     public String getName() {
         return name;
     }
@@ -78,10 +77,6 @@ public class Attraction {
         spaceAvailable.put(day, new HashMap<>());
 
         int i = 0;
-        // La cuenta es: Si opening + (mins*i) es menor a closing pongo. Va a haber un caso borde
-        // donde la cuenta puede dar mas, que es el último. Cuando creamos atracción, ya chequeamos que
-        // entre al menos un slot, y de acuerdo a la consigna, si entra un slot y queda tiempo extra que es
-        // menro a un slot, se hace igual.
         while ((opening.plusMinutes((long) minsPerSlot * i)).isBefore(closing)) {
             spaceAvailable.get(day).put(opening.plusMinutes((long) minsPerSlot * i), capacity);
             i++;
@@ -136,7 +131,6 @@ public class Attraction {
         lockRead(capacitiesLock);
         Map<Integer, Integer> capacities = getCapacities();
 
-        //busco la capacidad para ese día de esa atracción
         int capacity = 0;
         if (!capacities.isEmpty())
             capacity = capacities.get(day);

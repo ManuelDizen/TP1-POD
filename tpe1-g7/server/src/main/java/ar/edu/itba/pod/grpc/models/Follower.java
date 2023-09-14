@@ -21,10 +21,6 @@ public class Follower {
         return visitorId;
     }
 
-    public StreamObserver<NotifAttrReplyModel> getObs() {
-        return obs;
-    }
-
     public int getDay() {
         return day;
     }

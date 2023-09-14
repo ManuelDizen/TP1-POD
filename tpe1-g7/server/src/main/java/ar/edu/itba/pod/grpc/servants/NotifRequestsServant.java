@@ -26,7 +26,7 @@ public class NotifRequestsServant extends NotifRequestsServiceGrpc.NotifRequests
         String name = request.getName();
 
         repository.getAttractions().stream()
-                .filter(a -> Objects.equals(a.getName(), name)) // ¿Existe atracción?
+                .filter(a -> Objects.equals(a.getName(), name))
                 .findFirst().ifPresentOrElse(
                         a -> {
                             if (repository.visitorHasPass(visitorId, day)) {
@@ -66,7 +66,7 @@ public class NotifRequestsServant extends NotifRequestsServiceGrpc.NotifRequests
         String name = request.getName();
 
         repository.getAttractions().stream()
-                .filter(a -> Objects.equals(a.getName(), name)) // ¿Existe atracción?
+                .filter(a -> Objects.equals(a.getName(), name))
                 .findFirst().ifPresentOrElse(
                         a -> {
                             if(!repository.isValidDay(day)){

@@ -52,14 +52,6 @@ public class AttractionPass {
         unlockWrite(remainingLock);
     }
 
-    public int getRemaining() {
-        int rem;
-        lockRead(remainingLock);
-        rem = remaining;
-        unlockRead(remainingLock);
-        return rem;
-    }
-
     public UUID getVisitor() {
         return visitor;
     }
