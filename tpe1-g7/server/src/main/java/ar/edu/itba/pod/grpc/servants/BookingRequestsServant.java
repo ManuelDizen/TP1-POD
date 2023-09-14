@@ -29,7 +29,7 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
 
         //busco las attractions del repository, y las devuelvo
 
-        List<Attraction> attractions = repository.getAttractions();
+        List<Attraction> attractions = repository.getAttractions(); //TODO esto está mal
 
         List<RidesRequestModel> rides = new ArrayList<>();
 
