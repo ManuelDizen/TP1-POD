@@ -50,17 +50,6 @@ public class ParkRepository {
         return exists;
     }
 
-    public boolean attractionHasCapacityAlready(String name, int day) {
-        boolean has = false;
-        lockRead(attrLock);
-        if (attractionExists(name)) {
-            Optional<Attraction> att = attractions.stream().filter(a -> name.equals(a.getName())).findFirst();
-            if (att.isPresent()) has = att.get().hasCapacityForDay(day);
-        }
-        unlockRead(attrLock);
-        return has;
-    }
-
     //FUNCIONES ADMIN:
 
 
@@ -457,7 +446,7 @@ public class ParkRepository {
         List<QueryCapacityModel> capacityList = new ArrayList<>();
         lockRead(reservsLock);
         for (Attraction attr : attractionList) {
-            if (!attractionHasCapacityAlready(attr.getName(), day)) {
+            if (!attr.hasCapacityAlready(day)) {
                 PRDay = reservations.get(attr.getName()).stream().filter(a -> a.getDay() == day && a.getStatus() == PENDING).toList();
                 if(!PRDay.isEmpty()) {
                     Map<LocalTime, Long> acc = PRDay.stream().collect(
