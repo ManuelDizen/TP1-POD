@@ -164,14 +164,12 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
         int day = request.getDay();
         UUID id = UUID.fromString(request.getId());
         String attraction = request.getName();
-        LocalTime time = LocalTime.parse(request.getTime());
+        LocalTime slot = LocalTime.parse(request.getTime());
 
-        if(checkBookingParameters(attraction, day, time, id, responseObserver)) //TODO!!!!
+        if(checkBookingParameters(attraction, day, slot, id, responseObserver)) //TODO!!!!
             {
-            LocalTime slot = repository.getAttractionByName(attraction).getSlot(time); //TODO!!!
 
             try {
-
                 //hago la reserva, obtengo el estado de la misma
                 ResStatus status = repository.addReservation(new Reservation(attraction, day, id, slot, null));
                 responseObserver.onNext(ReservationState.newBuilder().setStatus(status)
@@ -190,10 +188,14 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
         int day = request.getDay();
         UUID id = UUID.fromString(request.getId());
         String attraction = request.getName();
-        LocalTime time = LocalTime.parse(request.getTime());
+        LocalTime slot = LocalTime.parse(request.getTime());
 
-        if(checkBookingParameters(attraction, day, time, id, responseObserver)) {
-            LocalTime slot = repository.getAttractionByName(attraction).getSlot(time);
+        if(checkBookingParameters(attraction, day, slot, id, responseObserver)) {
+
+            try {
+                repository.confirmReservation(attraction, day, slot, id);
+            }
+
             Reservation reservation = repository.getReservation(attraction, day, slot, id);
             if(!repository.attractionHasCapacityAlready(attraction, day)) {
                 bookOnError("Ride has no capacity yet", "Internal", responseObserver);
@@ -250,13 +252,6 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
             bookOnError("Slot is invalid", "Internal", responseObserver);
             return false;
         }
-
-        LocalTime slot = repository.getAttractionByName(name).getSlot(time);
-
-        if(!repository.visitorHasPass(id, day) || !repository.visitorCanVisit(id, day, slot)) {
-            bookOnError("Invalid pass", "Permission denied", responseObserver);
-            return false;
-        } // TODO: el chequeo tiene qeu estar sincronizado
 
         return true;
     }

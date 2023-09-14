@@ -36,7 +36,6 @@ public class AttractionPass {
     }
 
     public boolean rideConsumption() {
-        if(type == THREE) {
             lockWrite(remainingLock);
             if(remaining > 0) {
                 this.remaining--;
@@ -45,8 +44,6 @@ public class AttractionPass {
             }
             unlockWrite(remainingLock);
             return false;
-        }
-        return true;
     }
 
     public void cancelConsumption() {

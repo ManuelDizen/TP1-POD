@@ -109,6 +109,8 @@ public class ParkRepository {
 
     public boolean isValidSlot(String attraction, LocalTime slot) {
         Attraction att = getAttractionByName(attraction);
+        if(!att.getSlot(slot).equals(slot))
+            return false;
         return !slot.isBefore(att.getOpening()) && !slot.isAfter(att.getClosing());
     }
 
@@ -165,12 +167,16 @@ public class ParkRepository {
 
         Attraction attraction = getAttractionByName(reservation.getAttractionName());
 
-        //TODO!!
-        //chequeo si tiene pase válido
-        AttractionPass pass = getAttractionPass(reservation.getVisitorId(), reservation.getDay());
-        if(!pass.rideConsumption()) {
+        Optional<AttractionPass> pass = getAttractionPass(reservation.getVisitorId(), reservation.getDay());
+        if(pass.isEmpty())
+            throw new RuntimeException("Visitor does not have pass for that day");
+
+        if(!visitorCanVisit(reservation, pass.get()))
             throw new RuntimeException("Invalid pass");
-        }
+
+//        if(!pass.get().rideConsumption()) {
+//            throw new RuntimeException("Invalid pass");
+//        }
 
         if(attraction.hasCapacityAlready(reservation.getDay())) {
             try {
@@ -207,19 +213,17 @@ public class ParkRepository {
 
     }
 
-    public AttractionPass getAttractionPass(UUID visitorId, int day) {
+    public Optional<AttractionPass> getAttractionPass(UUID visitorId, int day) {
         lockRead(passLock);
-        AttractionPass pass = passes.stream().filter(a -> a.getVisitor().equals(visitorId) && a.getDay() == day)
-                .findFirst().orElseThrow();
+        Optional<AttractionPass> pass = passes.stream().filter(a -> a.getVisitor().equals(visitorId) && a.getDay() == day)
+                .findFirst();
         unlockRead(passLock);
         return pass;
     }
 
     public Reservation getReservation(String attraction, int day, LocalTime slot, UUID visitorId) {
-        lockRead(reservsLock);
-        Reservation r = reservations.get(attraction).stream().filter(a -> a.getDay() == day && a.getSlot().equals(slot) && a.getVisitorId().equals(visitorId)).findFirst().orElseThrow();
-        unlockRead(reservsLock);
-        return r; //TODO esta forma de hacerlo no se si me convence. Pienso en que uno podría:
+        return reservations.get(attraction).stream().filter(a -> a.getDay() == day && a.getSlot().equals(slot) && a.getVisitorId().equals(visitorId)).findFirst().orElseThrow();
+         //TODO esta forma de hacerlo no se si me convence. Pienso en que uno podría:
         /*
         1) Lockea el read (nadie modifica)
         2) Consigue reserva
@@ -404,7 +408,9 @@ public class ParkRepository {
                 .build();
     }
 
-    public boolean confirmReservation(Reservation reservation) {
+    public boolean confirmReservation(String name, int day, LocalTime slot, UUID visitorId) {
+        lockWrite(reservsLock);
+        Reservation reservation = getReservation(name, day, slot, visitorId);
         if(reservation == null)
             return false;
         return setReservationStatus(reservation.getAttractionName(), reservation.getDay(), reservation.getSlot(), reservation.getVisitorId(), new ArrayList<>(List.of(PENDING)), CONFIRMED);
@@ -438,23 +444,15 @@ public class ParkRepository {
         return ret;
     }
 
-    public boolean visitorCanVisit(UUID id, int day, LocalTime slot) {
+    public boolean visitorCanVisit(Reservation reservation, AttractionPass pass) {
 
-        Optional<AttractionPass> pass = passes.stream().filter(a -> a.getVisitor().equals(id) && a.getDay() == day)
-                .findFirst();
-
-        if(pass.isEmpty())
-            return false;
-
-        PassType type = pass.get().getType();
+        PassType type = pass.getType();
 
         switch (type) {
             case THREE:
-                if(pass.get().getRemaining() <= 0)
-                    return false;
-                break;
+                return pass.rideConsumption();
             case HALF_DAY:
-                if(slot.isAfter(LocalTime.of(14, 0)))
+                if(reservation.getSlot().isAfter(LocalTime.of(14, 0)))
                     return false;
                 break;
         }
