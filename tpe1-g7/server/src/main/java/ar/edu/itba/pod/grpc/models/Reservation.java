@@ -1,9 +1,15 @@
 package ar.edu.itba.pod.grpc.models;
 
+import org.slf4j.LoggerFactory;
+
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import static ar.edu.itba.pod.grpc.utils.LockUtils.*;
 
 public class Reservation {
     private final String attractionName;
@@ -15,6 +21,8 @@ public class Reservation {
     private LocalDateTime confirmedAt = null;
 
     private boolean reserved;
+    private final ReadWriteLock statusLock = new ReentrantReadWriteLock(fairness4locks);
+    private final ReadWriteLock slotLock = new ReentrantReadWriteLock(fairness4locks);
 
     public Reservation(String attractionName, int day, UUID visitorId, LocalTime slot, ReservationStatus status) {
         this.attractionName = attractionName;
@@ -39,19 +47,29 @@ public class Reservation {
     }
 
     public LocalTime getSlot() {
-        return slot;
+        lockRead(slotLock);
+        LocalTime s =  slot;
+        unlockRead(slotLock);
+        return s;
     }
 
     public ReservationStatus getStatus() {
-        return status;
+        lockRead(statusLock);
+        ReservationStatus s =  status;
+        unlockRead(statusLock);
+        return s;
     }
 
     public void setSlot(LocalTime slot) {
+        lockWrite(slotLock);
         this.slot = slot;
+        unlockWrite(slotLock);
     }
 
     public void setStatus(ReservationStatus status) {
+        lockWrite(statusLock);
         this.status = status;
+        unlockWrite(statusLock);
     }
 
     @Override
@@ -69,18 +87,6 @@ public class Reservation {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
-    }
-
-    public LocalDateTime getConfirmedAt() {
-        return confirmedAt;
-    }
-
-    public void setConfirmedAt(LocalDateTime confirmedAt) {
-        this.confirmedAt = confirmedAt;
-    }
-
-    public boolean isReserved() {
-        return reserved;
     }
 
     public void setReserved(boolean reserved) {

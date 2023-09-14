@@ -28,7 +28,7 @@ public class QueryRequestsServant extends QueryRequestsServiceGrpc.QueryRequests
             responseObserver.onError(Status.INTERNAL.withDescription("Invalid Day").asRuntimeException());
         }
         List<QueryCapacityModel> capacityList = repository.getPendingReservationsByDay(day);
-        capacityList.forEach(item -> {responseObserver.onNext(item);});
+        capacityList.forEach(responseObserver::onNext);
         responseObserver.onCompleted();
     }
 
@@ -39,7 +39,7 @@ public class QueryRequestsServant extends QueryRequestsServiceGrpc.QueryRequests
             responseObserver.onError(Status.INTERNAL.withDescription("Invalid Day").asRuntimeException());
         }
         List<QueryConfirmedModel> confirmedList = repository.getConfirmedReservationsByDay(day);
-        confirmedList.forEach(item -> {responseObserver.onNext(item);});
+        confirmedList.forEach(responseObserver::onNext);
         responseObserver.onCompleted();
     }
 }
