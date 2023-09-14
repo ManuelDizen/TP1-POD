@@ -7,6 +7,7 @@ import ar.edu.itba.pod.grpc.models.Reservation;
 import ar.edu.itba.pod.grpc.models.ReservationStatus;
 
 
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -221,8 +222,8 @@ public class ParkRepository {
         return pass;
     }
 
-    public Reservation getReservation(String attraction, int day, LocalTime slot, UUID visitorId) {
-        return reservations.get(attraction).stream().filter(a -> a.getDay() == day && a.getSlot().equals(slot) && a.getVisitorId().equals(visitorId)).findFirst().orElseThrow();
+    public Optional<Reservation> getReservation(String attraction, int day, LocalTime slot, UUID visitorId) {
+        return reservations.get(attraction).stream().filter(a -> a.getDay() == day && a.getSlot().equals(slot) && a.getVisitorId().equals(visitorId)).findFirst();
          //TODO esta forma de hacerlo no se si me convence. Pienso en que uno podría:
         /*
         1) Lockea el read (nadie modifica)
@@ -408,40 +409,50 @@ public class ParkRepository {
                 .build();
     }
 
-    public boolean confirmReservation(String name, int day, LocalTime slot, UUID visitorId) {
+    public void confirmReservation(String name, int day, LocalTime slot, UUID visitorId) throws RuntimeException {
         lockWrite(reservsLock);
-        Reservation reservation = getReservation(name, day, slot, visitorId);
-        if(reservation == null)
-            return false;
-        return setReservationStatus(reservation.getAttractionName(), reservation.getDay(), reservation.getSlot(), reservation.getVisitorId(), new ArrayList<>(List.of(PENDING)), CONFIRMED);
-    }
-
-    public boolean cancelReservation(Reservation reservation) {
-        if(reservation == null)
-            return false;
-        AttractionPass pass = getAttractionPass(reservation.getVisitorId(), reservation.getDay());
-        if(pass.getType() == THREE)
-            pass.cancelConsumption();
-        return setReservationStatus(reservation.getAttractionName(), reservation.getDay(), reservation.getSlot(), reservation.getVisitorId(), new ArrayList<>(List.of(PENDING, CONFIRMED)), CANCELLED);
-    }
-
-    private boolean setReservationStatus(String attraction, int day, LocalTime slot, UUID visitorId,
-                                         List<ReservationStatus> fromStatus, ReservationStatus toStatus) {
-
-        List<Reservation> reservs = reservations.get(attraction);
-        if(reservs.isEmpty())
-            return false; //si no hay reservas para esa atracción, falla
-
-        boolean ret = false;
-
-        for(Reservation r : reservs) {
-            if(r.getDay() == day && r.getSlot().equals(slot) && r.getVisitorId().equals(visitorId) && fromStatus.contains(r.getStatus())) {
-                r.setStatus(toStatus);
-                ret = true;
-            }
+        Optional<Reservation> r = getReservation(name, day, slot, visitorId);
+        if(r.isEmpty() || r.get().getStatus() == CONFIRMED) {
+            unlockWrite(reservsLock);
+            throw new RuntimeException("No pending reservations found");
         }
 
-        return ret;
+        Reservation reservation = r.get();
+
+        Optional<AttractionPass> pass = getAttractionPass(reservation.getVisitorId(), reservation.getDay());
+        if(pass.isEmpty())
+            throw new RuntimeException("Visitor does not have pass for that day");
+
+        reservation.setStatus(CONFIRMED);
+        reservation.setConfirmedAt(LocalDateTime.now());
+        unlockWrite(reservsLock);
+        manageNotifications(reservation);
+    }
+
+
+    public void cancelReservation(String name, int day, LocalTime slot, UUID visitorId) throws RuntimeException {
+
+        lockWrite(reservsLock);
+        Optional<Reservation> r = getReservation(name, day, slot, visitorId);
+        if(r.isEmpty()) {
+            unlockWrite(reservsLock);
+            throw new RuntimeException("No reservations found");
+        }
+        Reservation reservation = r.get();
+
+        Optional<AttractionPass> pass = getAttractionPass(reservation.getVisitorId(), reservation.getDay());
+        if(pass.isEmpty())
+            throw new RuntimeException("Visitor does not have pass for that day");
+        if(pass.get().getType() == THREE)
+            pass.get().cancelConsumption();
+        if(reservation.isReserved()) {
+            lockRead(attrLock);
+            Attraction att = getAttractionByName(name);
+            unlockRead(attrLock);
+            att.cancelReservation(reservation);
+            reservation.setReserved(false);
+        }
+        reservation.setStatus(CANCELLED);
     }
 
     public boolean visitorCanVisit(Reservation reservation, AttractionPass pass) {

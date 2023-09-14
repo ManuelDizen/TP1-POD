@@ -112,6 +112,15 @@ public class Attraction {
         unlockWrite(spacesLock);
     }
 
+    public void cancelReservation(Reservation reservation) {
+        lockWrite(spacesLock);
+        Map<LocalTime, Integer> slots = spaceAvailable.get(reservation.getDay());
+        Integer capacity = slots.get(reservation.getSlot());
+        capacity++;
+        slots.put(reservation.getSlot(), capacity);
+        unlockWrite(spacesLock);
+    }
+
     public LocalTime getSlot(LocalTime slot) {
 
         int i;

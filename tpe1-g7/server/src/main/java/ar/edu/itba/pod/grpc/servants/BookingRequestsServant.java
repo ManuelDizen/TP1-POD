@@ -194,21 +194,13 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
 
             try {
                 repository.confirmReservation(attraction, day, slot, id);
-            }
-
-            Reservation reservation = repository.getReservation(attraction, day, slot, id);
-            if(!repository.attractionHasCapacityAlready(attraction, day)) {
-                bookOnError("Ride has no capacity yet", "Internal", responseObserver);
-            }
-
-            if(!repository.confirmReservation(reservation))
-                bookOnError("No pending reservations found", "Not found", responseObserver);
-            else {
-                repository.manageNotifications(reservation);
                 responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.CONFIRMED).
                         setAttraction(attraction).setDay(day).setSlot(String.valueOf(slot)).build());
                 responseObserver.onCompleted();
+            } catch (RuntimeException e) {
+                bookOnError(e.getMessage(), "Permission denied", responseObserver);
             }
+
         }
 
     }
@@ -219,19 +211,19 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
         int day = request.getDay();
         UUID id = UUID.fromString(request.getId());
         String attraction = request.getName();
-        LocalTime time = LocalTime.parse(request.getTime());
+        LocalTime slot = LocalTime.parse(request.getTime());
 
-        if(checkBookingParameters(attraction, day, time, id, responseObserver)) {
-            LocalTime slot = repository.getAttractionByName(attraction).getSlot(time);
-            Reservation reservation = repository.getReservation(attraction, day, slot, id);
-            if (!repository.cancelReservation(reservation))
-                bookOnError("Reservation not found", "Not found", responseObserver);
-            else {
-                repository.manageNotifications(reservation);
-                responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.CANCELLED)
-                        .setAttraction(attraction).setDay(day).setSlot(String.valueOf(slot)).build());
+        if(checkBookingParameters(attraction, day, slot, id, responseObserver)) {
+
+            try {
+                repository.cancelReservation(attraction, day, slot, id);
+                responseObserver.onNext(ReservationState.newBuilder().setStatus(ResStatus.CONFIRMED).
+                        setAttraction(attraction).setDay(day).setSlot(String.valueOf(slot)).build());
                 responseObserver.onCompleted();
+            } catch (RuntimeException e) {
+                bookOnError(e.getMessage(), "Permission denied", responseObserver);
             }
+
         }
 
     }

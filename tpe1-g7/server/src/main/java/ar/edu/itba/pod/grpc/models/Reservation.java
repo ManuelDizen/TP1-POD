@@ -92,4 +92,16 @@ public class Reservation {
     public void setReserved(boolean reserved) {
         this.reserved = reserved;
     }
+
+    public boolean isReserved() {
+        return reserved;
+    }
+
+    public LocalDateTime getConfirmedAt() {
+        return confirmedAt;
+    }
+
+    public void setConfirmedAt(LocalDateTime confirmedAt) {
+        this.confirmedAt = confirmedAt;
+    }
 }
