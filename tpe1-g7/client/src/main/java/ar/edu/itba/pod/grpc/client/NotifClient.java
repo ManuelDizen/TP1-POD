@@ -15,7 +15,6 @@ import utils.PropertyNames;
 import java.security.InvalidParameterException;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import static utils.ConnectionUtils.shutdownChannel;
 

@@ -22,7 +22,6 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
     @Override
     public void addSlotsRequest(SlotsRequestModel request,
                                 StreamObserver<SlotsReplyModel> responseObserver){
-        System.out.println("Hola llegue a addSlotsRequest!!!\n");
         int day = request.getDay();
         int capacity = request.getCapacity();
         String name = request.getRide();
@@ -45,7 +44,7 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
             else{
                 returnOnError("Unknown error", responseObserver);
 
-            } //TODO ver como optimizar esto internamente
+            }
         }
         catch(RuntimeException e){
             returnOnError(e.getMessage(), responseObserver);
@@ -59,7 +58,6 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
         int day = request.getDay();
         UUID id = UUID.fromString(request.getId());
         PassType type = request.getType();
-        //TODO: Move validations to synchronized? Preguntar como
         if(day < 1 || day > 365){
             returnOnError("Day is invalid.", responseObserver);
             return;

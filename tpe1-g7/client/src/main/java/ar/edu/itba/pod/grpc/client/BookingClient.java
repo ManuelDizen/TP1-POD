@@ -1,7 +1,6 @@
 package ar.edu.itba.pod.grpc.client;
 
 import ar.edu.itba.pod.grpc.client.queryModels.BookQueryParamsModel;
-import ar.edu.itba.pod.grpc.client.queryModels.SlotsQueryParamsModel;
 import ar.edu.itba.pod.grpc.requests.*;
 import com.google.protobuf.Empty;
 import io.grpc.ManagedChannel;
