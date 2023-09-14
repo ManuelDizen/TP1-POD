@@ -94,6 +94,11 @@ Donde
   - **confirmed:** Resuelve la Consulta 2.
 - **output.txt** es el path del archivo de salida con los resultados de la 
 consulta elegida.
+---
+
+### Observaciones
+- En la consigna se pedía que los clientes corrieran desde terminal sin incluir la extensión `.sh` (Ejemplo: `./query-cli ...`). Esto depende de la configuración de la terminal, pero en el caso de este desarrollo (y como está aclarado en este README), el proyecto se corrió con la extensión incluida.
+- Otra aclaración pertinente es que en la consigna se mezclaba el uso del término _ride_ con _attraction_ para indicar lo mismo (en algunos ejemplos se usaba de una forma, en otros con la otra). Nos tomamos la libertad de unificarlo bajo _ride_, por lo que todos los llamados que involucren pasar el nombre de la atracción usan la _System Property_ con el nombre de _ride_.
 
 ## Integrantes:
 Nombre | Legajo

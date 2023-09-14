@@ -1,10 +1,6 @@
 /* Admin requests */
 syntax = "proto3";
 
-import "google/protobuf/wrappers.proto";
-import "google/protobuf/empty.proto";
-import "google/protobuf/timestamp.proto";
-
 package requests;
 
 option java_package = "ar.edu.itba.pod.grpc.requests";

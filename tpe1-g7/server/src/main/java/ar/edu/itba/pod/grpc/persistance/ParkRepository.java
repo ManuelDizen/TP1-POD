@@ -485,6 +485,7 @@ public class ParkRepository {
             reservation.setReserved(false);
         }
         reservation.setStatus(CANCELLED);
+        manageNotifications(reservation);
     }
 
     private void confirmReservation(Reservation reservation) {
