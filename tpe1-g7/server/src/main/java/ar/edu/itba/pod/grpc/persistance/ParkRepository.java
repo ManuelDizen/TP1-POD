@@ -255,7 +255,6 @@ public class ParkRepository {
 
     public Optional<Reservation> getReservation(String attraction, int day, LocalTime slot, UUID visitorId) {
         return reservations.get(attraction).stream().filter(a -> a.getDay() == day && a.getSlot().equals(slot) && a.getVisitorId().equals(visitorId)).findFirst();
-        //TODO esta forma de hacerlo no se si me convence. Pienso en que uno podría:
         /*
         1) Lockea el read (nadie modifica)
         2) Consigue reserva

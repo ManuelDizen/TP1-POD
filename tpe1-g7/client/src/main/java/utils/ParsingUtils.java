@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public class ParsingUtils {
 
@@ -70,7 +71,7 @@ public class ParsingUtils {
         return lines;
     }
 
-    public static PassType getFromString(String name) {
+    public static PassType getPassNameFromString(String name) {
 
         return switch (name) {
             case "UNLIMITED" -> PassType.UNLIMITED;
@@ -78,6 +79,15 @@ public class ParsingUtils {
             case "THREE" -> PassType.THREE;
             default -> null;
         };
+    }
+
+    public static boolean isValidUUID(String str) {
+        try {
+            UUID.fromString(str);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 
 }

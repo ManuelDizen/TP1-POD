@@ -47,7 +47,7 @@ public class PrintingUtils {
             System.out.println("Cannot add " + (expected-actual) + " attractions.");
         }
         if(actual != 0){
-            System.out.println(actual + " attractions added.");
+            System.out.println(actual + " attraction" + (expected==1?"":"s") + " added.");
         }
     }
 
@@ -58,5 +58,9 @@ public class PrintingUtils {
         if(actual != 0){
             System.out.println(actual + " passes added.");
         }
+    }
+
+    public static void printBookingReply(ReservationState response){
+        System.out.println("The reservation for " + response.getAttraction() +  " at " + response.getSlot() + " on the day " + response.getDay() + " is " + response.getStatus());
     }
 }

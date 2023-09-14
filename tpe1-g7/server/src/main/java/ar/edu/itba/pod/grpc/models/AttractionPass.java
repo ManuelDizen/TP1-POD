@@ -36,14 +36,14 @@ public class AttractionPass {
     }
 
     public boolean rideConsumption() {
-        lockWrite(remainingLock);
-        if(remaining > 0) {
-            this.remaining--;
+            lockWrite(remainingLock);
+            if(remaining > 0) {
+                this.remaining--;
+                unlockWrite(remainingLock);
+                return true;
+            }
             unlockWrite(remainingLock);
-            return true;
-        }
-        unlockWrite(remainingLock);
-        return false;
+            return false;
     }
 
     public void cancelConsumption() {
