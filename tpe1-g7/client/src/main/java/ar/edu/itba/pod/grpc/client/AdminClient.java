@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import static utils.ConnectionUtils.shutdownChannel;
+import static utils.ParsingUtils.isValidUUID;
 
 public class AdminClient {
     private static final Logger logger = LoggerFactory.getLogger(AdminClient.class);
@@ -52,7 +53,13 @@ public class AdminClient {
                     System.out.println("Path does not exist. Now exiting.");
                     break;
                 }
-                entries = ParsingUtils.parseCsv(path.get());
+                try{
+                    entries = ParsingUtils.parseCsv(path.get());
+                }
+                catch(RuntimeException e){
+                    System.out.println("Error: File was not found");
+                    return;
+                }
                 for (String[] entry : entries) {
                     String name = entry[0];
                     String opening = entry[1];
@@ -82,7 +89,13 @@ public class AdminClient {
                     System.out.println("Path does not exist. Now exiting.");
                     break;
                 }
-                entries = ParsingUtils.parseCsv(path.get());
+                try{
+                    entries = ParsingUtils.parseCsv(path.get());
+                }
+                catch(RuntimeException e){
+                    System.out.println("Error: File was not found");
+                    return;
+                }
                 for (String[] entry : entries) {
                     PassType type = ParsingUtils.getPassNameFromString(entry[1]);
                     if (type == null) {
@@ -90,6 +103,10 @@ public class AdminClient {
                         break;
                     }
                     String id = entry[0];
+                    if(!isValidUUID(id)){
+                        System.out.println("Error in UUID format. Now exiting.");
+                        break;
+                    }
                     int day = Integer.parseInt(entry[2]);
                     TicketsRequestModel model = TicketsRequestModel.newBuilder()
                             .setDay(day)
