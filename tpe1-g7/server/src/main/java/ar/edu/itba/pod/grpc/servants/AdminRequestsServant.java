@@ -39,18 +39,18 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
 
             //returnOnError("Invalid day: " + day + ".", responseObserver);
         }
-        if(!repository.attractionExists(name)){
-            responseObserver.onError(Status.NOT_FOUND.withDescription("Attracion doesn't exist").asRuntimeException());
-
-            //returnOnError("Invalid attraction: " + name + ".", responseObserver);
-        }
-        if(capacity < 0 || repository.attractionHasCapacityAlready(name, day)){
-            responseObserver.onError(Status.INTERNAL.withDescription("Attraction has capacity already").asRuntimeException());
+        if(capacity < 0){
+            responseObserver.onError(Status.INTERNAL.withDescription("Capacity cannot be 0").asRuntimeException());
             //TODO: Ver como lidiar con esto
             //returnOnError("Attraction " + name + " already has capacity for this day.", responseObserver);
         }
-
-        SlotsReplyModel reply = repository.addSlots(name, day, capacity);
+        SlotsReplyModel reply = null;
+        try {
+            reply = repository.addSlots(name, day, capacity);
+        }
+        catch(RuntimeException e){
+            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
+        }
 
         if(reply != null){
             responseObserver.onNext(reply);

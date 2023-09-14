@@ -49,9 +49,7 @@ public class ParkRepository {
         lockRead(attrLock);
         if(attractionExists(name)){
             Optional<Attraction> att = attractions.stream().filter(a -> name.equals(a.getName())).findFirst();
-            lockRead(att.get().getSpacesLock()); // TODO pass to attraction class
-            has = att.map(attraction -> attraction.getSpaceAvailable().containsKey(day)).orElse(false);
-            unlockRead(att.get().getSpacesLock());
+            if(att.isPresent()) has = att.get().hasCapacityForDay(day);
         }
         unlockRead(attrLock);
         return has;
@@ -59,10 +57,15 @@ public class ParkRepository {
 
     //Con att, dia y capacidad, genera la capcaidad para todos los slots de ese día. Hace falta validar
     // las reservas en espera, y confirmarlas/cancelarlas/reubicarlas.
-    public SlotsReplyModel addSlots(String name, int day, int capacity){
+    public SlotsReplyModel addSlots(String name, int day, int capacity) throws RuntimeException{
         Attraction att = getAttractionByName(name);
+        if(att == null) //TODO esto no hay chance que esté bien sincronizado, lo hago por devolver un error mas prolijo
+            throw new RuntimeException("Attraction does not exist");
+        if(attractionHasCapacityAlready(name, day))
+            throw new RuntimeException("Attraction already has capacity loaded for day " + day + ".");
         if(!att.initializeSlots(day, capacity))
-            return null;
+            throw new RuntimeException("Error instantiating the slots. Please try again");
+        //TODO: ver si ese chequeo en el if está bien en términos de sync
         return updateReservations(name, day, capacity);
     }
 
@@ -435,7 +438,8 @@ public class ParkRepository {
     }
 
     public int getRemainingCapacity(String name, int day, LocalTime slot) {
-        Map<LocalTime, Integer> slots = repository.getAttractionByName(name).getSpaceAvailable().get(day);return slots.get(slot);
+        Map<LocalTime, Integer> slots = repository.getAttractionByName(name).getSpaceAvailable().get(day);
+        return slots.get(slot);
     }
 
     public boolean isValidDay(int day){

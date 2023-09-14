@@ -53,23 +53,23 @@ public class Attraction {
 
     public Map<Integer, Integer> getCapacities() {
         lockRead(capacitiesLock);
-        Map<Integer, Integer> map =  capacities;
+        Map<Integer, Integer> map = capacities;
         unlockRead(capacitiesLock);
         return map;
     }
 
-    private void setCapacityForDay(int day, int capacity){
-        capacities.put(day,capacity);
+    private void setCapacityForDay(int day, int capacity) {
+        capacities.put(day, capacity);
     }
 
-    public boolean initializeSlots(int day, int capacity){
+    public boolean initializeSlots(int day, int capacity) {
 
         lockWrite(capacitiesLock);
 
-        if(!capacities.containsKey(day))
+        if (!capacities.containsKey(day))
             return false;
 
-        setCapacityForDay(day,capacity);
+        setCapacityForDay(day, capacity);
 
         lockWrite(spacesLock);
 
@@ -80,7 +80,7 @@ public class Attraction {
         // donde la cuenta puede dar mas, que es el último. Cuando creamos atracción, ya chequeamos que
         // entre al menos un slot, y de acuerdo a la consigna, si entra un slot y queda tiempo extra que es
         // menro a un slot, se hace igual.
-        while((opening.plusMinutes((long) minsPerSlot * i)).isBefore(closing)){
+        while ((opening.plusMinutes((long) minsPerSlot * i)).isBefore(closing)) {
             spaceAvailable.get(day).put(opening.plusMinutes((long) minsPerSlot * i), capacity);
             i++;
         }
@@ -89,8 +89,8 @@ public class Attraction {
 
         lockRead(followersLock);
         List<Follower> toNotify = followers.stream().filter(a -> a.getDay() == day).toList();
-        for(Follower f : toNotify){
-            f.sendMessage(name + " announced slot capacity for the day " + day +": " + capacity + " places.");
+        for (Follower f : toNotify) {
+            f.sendMessage(name + " announced slot capacity for the day " + day + ": " + capacity + " places.");
         }
         unlockRead(followersLock);
 
@@ -103,10 +103,11 @@ public class Attraction {
 
         int i;
 
-        for(i=0; opening.plusMinutes((long) minsPerSlot * i).isBefore(slot) ||
-                opening.plusMinutes((long) minsPerSlot * i).equals(slot); i++);
+        for (i = 0; opening.plusMinutes((long) minsPerSlot * i).isBefore(slot) ||
+                opening.plusMinutes((long) minsPerSlot * i).equals(slot); i++)
+            ;
 
-        return opening.plusMinutes((long) minsPerSlot *(i-1));
+        return opening.plusMinutes((long) minsPerSlot * (i - 1));
     }
 
     public List<Follower> getFollowers() {
@@ -116,15 +117,15 @@ public class Attraction {
         return f;
     }
 
-    public void addFollower(Follower f){
+    public void addFollower(Follower f) {
         lockWrite(followersLock);
         followers.add(f);
         unlockWrite(followersLock);
         f.sendMessage("User " + f.getVisitorId().toString() + " is now following attraction " + this.getName()
-            + " for day " + f.getDay());
+                + " for day " + f.getDay());
     }
 
-    public boolean checkToNotify(Reservation reservation){
+    public boolean checkToNotify(Reservation reservation) {
         lockRead(followersLock);
         boolean notify = followers.stream()
                 .anyMatch(
@@ -134,7 +135,7 @@ public class Attraction {
         return notify;
     }
 
-    public void unsubscribeFollower(UUID visitorId, int day){
+    public void unsubscribeFollower(UUID visitorId, int day) {
         lockWrite(followersLock);
         Follower f = followers.stream().filter(follower -> follower.getDay() == day
                 && follower.getVisitorId().equals(visitorId)).findFirst().orElseThrow();
@@ -143,40 +144,48 @@ public class Attraction {
         unlockWrite(followersLock);
     }
 
-    public boolean isVisitorSubscribedForDay(Follower f){
+    public boolean isVisitorSubscribedForDay(Follower f) {
         lockRead(followersLock);
         boolean has = followers.contains(f);
         unlockRead(followersLock);
         return has;
     }
 
-    public boolean isVisitorSubscribedForDay(UUID visitorId, int day){
+    public boolean isVisitorSubscribedForDay(UUID visitorId, int day) {
         return isVisitorSubscribedForDay(new Follower(visitorId, day, null));
     }
 
-    public void notifyReservation(int day, UUID id, Reservation r){
+    public void notifyReservation(int day, UUID id, Reservation r) {
         lockRead(followersLock);
         Follower f = followers.stream().filter(a -> a.getDay() == day && a.getVisitorId().equals(id)).findFirst().orElseThrow(); // No debería pasar
         unlockRead(followersLock);
         f.sendMessage("The reservation for " + this.getName() + " at " + r.getSlot().toString() +
                 " on the day " + day + " is " + r.getStatus().toString());
     }
-    public void notifyReservation(int day, UUID id, Reservation r, String message){
+
+    public void notifyReservation(int day, UUID id, Reservation r, String message) {
         lockRead(followersLock);
         Follower f = followers.stream().filter(a -> a.getDay() == day && a.getVisitorId().equals(id)).findFirst().orElseThrow(); // No debería pasar
         unlockRead(followersLock);
         f.sendMessage(message);
     }
 
-    public void updateSlots(int day, LocalTime slot, int capacity){
+    public void updateSlots(int day, LocalTime slot, int capacity) {
         lockWrite(spacesLock);
         spaceAvailable.get(day).put(slot, capacity);
         unlockWrite(spacesLock);
     }
 
-    public Map<LocalTime, Integer> lockWriteAndGetSpacesAvailableForDay(int day){
+    public Map<LocalTime, Integer> lockWriteAndGetSpacesAvailableForDay(int day) {
         lockWrite(spacesLock);
         return getSpaceAvailable().get(day);
+    }
+
+    public boolean hasCapacityForDay(int day){
+        lockRead(spacesLock);
+        boolean has = getSpaceAvailable().containsKey(day);
+        unlockRead(spacesLock);
+        return has;
     }
 
     public void freeLockWriteForSpacesAvailable(){
