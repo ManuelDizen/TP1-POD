@@ -50,9 +50,7 @@ public class ParkRepository {
         lockRead(attrLock);
         if(attractionExists(name)){
             Optional<Attraction> att = attractions.stream().filter(a -> name.equals(a.getName())).findFirst();
-            lockRead(att.get().getSpacesLock()); //TODO pass to attraction class
-            has = att.map(attraction -> attraction.getSpaceAvailable().containsKey(day)).orElse(false);
-            unlockRead(att.get().getSpacesLock());
+            if(att.isPresent()) has = att.get().hasCapacityForDay(day);
         }
         unlockRead(attrLock);
         return has;
@@ -60,16 +58,24 @@ public class ParkRepository {
 
     //Con att, dia y capacidad, genera la capcaidad para todos los slots de ese día. Hace falta validar
     // las reservas en espera, y confirmarlas/cancelarlas/reubicarlas.
-    public SlotsReplyModel addSlots(String name, int day, int capacity){
+    public SlotsReplyModel addSlots(String name, int day, int capacity) throws RuntimeException{
         Attraction att = getAttractionByName(name);
+        if(att == null) //TODO esto no hay chance que esté bien sincronizado, lo hago por devolver un error mas prolijo
+            throw new RuntimeException("Attraction does not exist");
+        if(attractionHasCapacityAlready(name, day))
+            throw new RuntimeException("Attraction already has capacity loaded for day " + day + ".");
         if(!att.initializeSlots(day, capacity))
-            return null;
+            throw new RuntimeException("Error instantiating the slots. Please try again");
+        //TODO: ver si ese chequeo en el if está bien en términos de sync
         return updateReservations(name, day);
     }
 
-    public Attraction addRide(Attraction att){
+    public Attraction addRide(Attraction att) throws RuntimeException{
         lockWrite(attrLock);
+
+        if(!attractions.contains(att)) throw new RuntimeException("Attraction does not exist");
         attractions.add(att);
+
         unlockWrite(attrLock);
 
         lockWrite(reservsLock);
@@ -79,8 +85,13 @@ public class ParkRepository {
         return att;
     }
 
-    public boolean addPass(AttractionPass pass){
+    public boolean addPass(AttractionPass pass) throws RuntimeException{
         lockWrite(passLock);
+        if(passes.stream().anyMatch(a ->
+                a.getVisitor().equals(pass.getVisitor()) && a.getDay()==pass.getDay())){
+            throw new RuntimeException("Visitor " + pass.getVisitor() + " already has pass for day "
+                    + pass.getDay() + ".");
+        }
         passes.add(pass);
         unlockWrite(passLock);
         return true;
@@ -274,7 +285,12 @@ public class ParkRepository {
     private SlotsReplyModel updateReservations(String name, int day){
         int confirmed = 0, cancelled = 0, relocated = 0;
 
-        //Method called when an attraction receives a capacity so that it confirms/denies/relocates reservations
+        // Siendo que este método es literalmente eterno, voy a documentar paso a paso como lo sincronice
+        // (1) Necesito que, cuando este actualizando, no se sumen reervas nuevas (ni que queden pendientes ni se ocnfirmen)
+        // Por ende tomo el writeLock hasta que no use mas la colección.
+
+        lockWrite(reservsLock);
+
         List<Reservation> attReservs = new ArrayList<>(reservations.get(name).stream()
                 .filter(r -> r.getDay() == day && r.getStatus() == PENDING)
                 .toList());
@@ -289,10 +305,18 @@ public class ParkRepository {
         for(Reservation res : attReservs)
             System.out.println(res.getDay() + " - " + res.getSlot());
 
-        //Tengo las reservas del día que todavía estan pendientes (es decir, las otras que estaban para ese dia
-        // estan confirmadas o canceladas).
-        // Ahora, tengo que confirmar las primeras N que llegaron
-        Map<LocalTime, Integer> capacities = getAttractionByName(name).getSpaceAvailable().get(day);
+        // (2) Acá se está haciendo un acceso directo a los spacesAvailable (mal). Toca modificarlo,
+        // y además cuidar que mientras analice las reservas pendientes no me confirmen cambien ninguna
+        // (recordar que holdeo lock de reservas)
+
+        lockRead(attrLock);
+        Attraction attr = getAttractionByName(name);
+        unlockRead(attrLock);
+
+        // Para esto, creo método que permite acceder a la instancia de la atracción, y holdear el lock de escritura
+        Map<LocalTime, Integer> capacities = attr.lockWriteAndGetSpacesAvailableForDay(day);
+        // IMPORTANTE: Recordar que acá estoy holdeando el lock de spacesavailable. No se puede adulterar
+        // Sigo holdeando el lock de reservsLock
 
         for(Reservation r : attReservs){
             boolean updated = false;
@@ -304,6 +328,7 @@ public class ParkRepository {
                 confirmReservation(r);
                 capacities.put(prevSlot, capacities.get(r.getSlot()) - 1);
                 r.setReserved(true);
+                //Puedo hacer la línea de arriba xq holdeo el lock
                 confirmed++;
             }
             else{
@@ -326,7 +351,6 @@ public class ParkRepository {
                         break;
                     }
                 }
-
                 if(firstAvailable != null){
                     r.setStatus(PENDING);
                     r.setSlot(firstAvailable);
@@ -334,7 +358,6 @@ public class ParkRepository {
                     r.setReserved(true);
                     relocated++;
                     updated = true;
-
                 }
                 else{
                     r.setStatus(CANCELLED); // No hay espacio en ningún slot, se cancela;
@@ -351,6 +374,11 @@ public class ParkRepository {
             }
         }
 
+        attr.freeLockWriteForSpacesAvailable(); //Suelto candado de spaces available
+        unlockWrite(reservsLock); //Suelto el 2do lock que tenía holdeado.
+
+        //Cuando lean, revisen que no haya referencias en algún llamado en el medio para algún método que necesite usar
+        // reservas o spacesAvailable.
         return SlotsReplyModel.newBuilder()
                 .setCancelled(cancelled)
                 .setConfirmed(confirmed)
@@ -416,7 +444,8 @@ public class ParkRepository {
     }
 
     public int getRemainingCapacity(String name, int day, LocalTime slot) {
-        Map<LocalTime, Integer> slots = repository.getAttractionByName(name).getSpaceAvailable().get(day);return slots.get(slot);
+        Map<LocalTime, Integer> slots = repository.getAttractionByName(name).getSpaceAvailable().get(day);
+        return slots.get(slot);
     }
 
     public boolean isValidDay(int day){
