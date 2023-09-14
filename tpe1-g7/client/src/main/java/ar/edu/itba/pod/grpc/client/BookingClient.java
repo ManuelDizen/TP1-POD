@@ -107,7 +107,7 @@ public class BookingClient {
         AvailabilityResponseModel response;
         if(attraction.isEmpty()) {
             response = req.checkAvailabilityAllAttractions(AvailabilityRequestModel.newBuilder()
-                   .setDay(day).addAllSlots(slots).build());
+                    .setDay(day).addAllSlots(slots).build());
         } else {
             response = req.checkAvailability(AvailabilityRequestModel.newBuilder()
                     .setAttraction(attraction.get()).setDay(day).addAllSlots(slots).build());

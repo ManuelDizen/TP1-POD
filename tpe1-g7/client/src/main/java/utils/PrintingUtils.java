@@ -18,22 +18,28 @@ public class PrintingUtils {
 
     public static void printAttractions(List<RidesRequestModel> attractions) {
 
-        System.out.println("Attractions: ");
+        if (attractions.isEmpty()) {
+            System.out.println("Attractions under maintenance.");
+        }
+        else {
+            System.out.println("Attractions: ");
 
-        for(RidesRequestModel r : attractions) {
-            System.out.println(r.getName() + " : " + r.getOpening() + " - " + r.getClosing());
+            for (RidesRequestModel r : attractions) {
+                System.out.println(r.getName() + " : " + r.getOpening() + " - " + r.getClosing());
+            }
         }
 
     }
 
     public static void printAvailability(List<AvailabilityResponse> availability) {
-
-        System.out.println("Slot  | Capacity | Pending | Confirmed | Attraction");
-
-        for(AvailabilityResponse a : availability) {
-            System.out.println(a.getSlot() + " |    " +(a.getCapacity() != 0 ? a.getCapacity() : "X") + "    |    " + a.getPending() + "    |    " + a.getConfirmed() + "    | " + a.getAttraction());
+        if (availability.isEmpty()) {
+            System.out.println("There are no available slots.");
+        } else {
+            System.out.println("Slot  | Capacity | Pending | Confirmed | Attraction");
+            for (AvailabilityResponse a : availability) {
+                System.out.println(a.getSlot() + " |    " + (a.getCapacity() != 0 ? a.getCapacity() : "X") + "    |    " + a.getPending() + "    |    " + a.getConfirmed() + "    | " + a.getAttraction());
+            }
         }
-
     }
 
     public static void printRidesReply(int expected, int actual){

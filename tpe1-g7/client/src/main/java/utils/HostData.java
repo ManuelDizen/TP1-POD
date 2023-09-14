@@ -14,7 +14,6 @@ public class HostData {
         this.port = port;
     }
 
-    //TODO: not used yet
     public HostData(String unparsed){
         HostData d = ParsingUtils.parseIpPort(unparsed);
         if(d == null){

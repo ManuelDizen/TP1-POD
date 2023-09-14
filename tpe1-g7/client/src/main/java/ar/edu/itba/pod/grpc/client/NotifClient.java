@@ -15,6 +15,7 @@ import utils.PropertyNames;
 import java.security.InvalidParameterException;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static utils.ConnectionUtils.shutdownChannel;
 
@@ -69,8 +70,8 @@ public class NotifClient {
             }
             default -> System.out.println("Action not recognized. Please try again.");
         }
-        shutdownChannel(channel);
 
+        shutdownChannel(channel);
     }
 
     private static NotifAttrRequestModel buildModel(String visitorId, String name, int day){

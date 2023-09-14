@@ -161,6 +161,7 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
         int day = request.getDay();
         UUID id = UUID.fromString(request.getId());
         String attraction = request.getName();
+
         LocalTime slot = LocalTime.parse(request.getTime());
 
         if(checkBookingParameters(attraction, day, slot, id, responseObserver)) {

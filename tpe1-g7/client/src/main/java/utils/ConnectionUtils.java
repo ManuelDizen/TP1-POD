@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ConnectionUtils {
     public static ManagedChannel createChannel(){
-        String hostData = ParsingUtils.getSystemProperty(PropertyNames.SERVER_ADDRESS).orElseThrow();
+        String hostData = ParsingUtils.getSystemProperty(PropertyNames.SERVER_ADDRESS).orElseThrow(() -> new RuntimeException("Invalid server address"));
         System.out.println("Host data desde createChannel: " + hostData + "\n");
         return ManagedChannelBuilder.forTarget(hostData)
                 .usePlaintext()
