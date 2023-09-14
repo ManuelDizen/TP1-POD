@@ -1,5 +1,7 @@
 package ar.edu.itba.pod.grpc.client;
 
+import ar.edu.itba.pod.grpc.client.queryModels.BookQueryParamsModel;
+import ar.edu.itba.pod.grpc.client.queryModels.SlotsQueryParamsModel;
 import ar.edu.itba.pod.grpc.requests.*;
 import com.google.protobuf.Empty;
 import io.grpc.ManagedChannel;
@@ -10,10 +12,14 @@ import utils.ParsingUtils;
 import utils.PrintingUtils;
 import utils.PropertyNames;
 
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
+
+import static utils.ConnectionUtils.shutdownChannel;
+import static utils.PrintingUtils.printBookingReply;
 
 public class BookingClient {
 
@@ -25,8 +31,15 @@ public class BookingClient {
 
         ManagedChannel channel = ConnectionUtils.createChannel();
 
-        String action = ParsingUtils.getSystemProperty(PropertyNames.ACTION).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
-        //TODO: NullPointerDereference
+        String action = null;
+        try {
+            action = ParsingUtils.getSystemProperty(PropertyNames.ACTION).orElseThrow();
+        }
+        catch(NoSuchElementException e){
+            System.out.println("Action requested is invalid. Please check action is one of the following options:\n[rides|tickets|slots]");
+            shutdownChannel(channel);
+            return;
+        }
 
         BookingRequestsServiceGrpc.BookingRequestsServiceBlockingStub req =
                 BookingRequestsServiceGrpc.newBlockingStub(channel);
@@ -34,51 +47,57 @@ public class BookingClient {
         BookRequestModel model;
 
         ReservationState response;
-        switch(action) {
-            case "attractions":
-                getAllAttractions(req);
-                break;
-            case "availability":
-                checkAvailability(req);
-                break;
-            case "book":
+        switch (action) {
+            case "attractions" -> getAllAttractions(req);
+            case "availability" -> checkAvailability(req);
+            case "book" -> {
                 model = bookModel();
-                response = req.bookingRequest(model);
-                System.out.println("The reservation for " + response.getAttraction() +  " at " + response.getSlot() + " on the day " + response.getDay() + " is " + response.getStatus());
-                break;
-            case "confirm":
+                try{
+                    response = req.bookingRequest(model);
+                    printBookingReply(response);
+                }
+                catch(RuntimeException e){
+                    System.out.println("Error booking: " + e.getMessage());
+                }
+            }
+            case "confirm" -> {
                 model = bookModel();
-                response = req.confirmBooking(model);
-                System.out.println("The reservation for " + response.getAttraction() +  " at " + response.getSlot() + " on the day " + response.getDay() + " is " + response.getStatus());
-                break;
-            case "cancel":
+                try{
+                    response = req.confirmBooking(model);
+                    printBookingReply(response);
+                }
+                catch(RuntimeException e){
+                    System.out.println("Error booking: " + e.getMessage());
+                }
+            }
+            case "cancel" -> {
                 model = bookModel();
-                response = req.cancelBooking(model);
-                System.out.println("The reservation for " + response.getAttraction() +  " at " + response.getSlot() + " on the day " + response.getDay() + " is " + response.getStatus());
-                break;
-            default:
-                System.out.println("Invalid action. Please try again.");
-                break;
+                try{
+                    response = req.cancelBooking(model);
+                    printBookingReply(response);
+                }
+                catch(RuntimeException e){
+                    System.out.println("Error booking: " + e.getMessage());
+                }
+            }
+            default -> System.out.println("Invalid action. Please try again.");
         }
-        channel.shutdownNow().awaitTermination(10, TimeUnit.SECONDS);
+        shutdownChannel(channel);
     }
 
     private static void getAllAttractions(BookingRequestsServiceGrpc.BookingRequestsServiceBlockingStub req) {
-
         List<RidesRequestModel> attractionList = req.getAttractionsRequest(Empty.getDefaultInstance()).getRidesList();
-
         PrintingUtils.printAttractions(attractionList);
-
     }
 
     private static void checkAvailability(BookingRequestsServiceGrpc.BookingRequestsServiceBlockingStub req) {
 
-        int day = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow(() -> new RuntimeException("Error parsing parameter")));
+        int day = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow());
         List<String> slots = new ArrayList<>(){};
         Optional<String> slot = ParsingUtils.getSystemProperty(PropertyNames.SLOT);
         if(slot.isEmpty()) {
-            String slotFrom = ParsingUtils.getSystemProperty(PropertyNames.SLOT_FROM).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
-            String slotTo = ParsingUtils.getSystemProperty(PropertyNames.SLOT_TO).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
+            String slotFrom = ParsingUtils.getSystemProperty(PropertyNames.SLOT_FROM).orElseThrow();
+            String slotTo = ParsingUtils.getSystemProperty(PropertyNames.SLOT_TO).orElseThrow();
             slots.add(slotFrom);
             slots.add(slotTo);
         } else {
@@ -88,7 +107,7 @@ public class BookingClient {
         AvailabilityResponseModel response;
         if(attraction.isEmpty()) {
             response = req.checkAvailabilityAllAttractions(AvailabilityRequestModel.newBuilder()
-                   .setDay(day).addAllSlots(slots).build());
+                    .setDay(day).addAllSlots(slots).build());
         } else {
             response = req.checkAvailability(AvailabilityRequestModel.newBuilder()
                     .setAttraction(attraction.get()).setDay(day).addAllSlots(slots).build());
@@ -98,15 +117,18 @@ public class BookingClient {
     }
 
     private static BookRequestModel bookModel() {
-        String attraction = ParsingUtils.getSystemProperty(PropertyNames.RIDE).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
-        int day = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow(() -> new RuntimeException("Error parsing parameter")));
-        String time = ParsingUtils.getSystemProperty(PropertyNames.SLOT).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
-        String visitorId = ParsingUtils.getSystemProperty(PropertyNames.VISITOR).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
+        BookQueryParamsModel queryModel;
+        try {
+            queryModel = new BookQueryParamsModel();
+        } catch (InvalidParameterException e) {
+            System.out.println(e.getMessage());
+            return null;
+        }
 
-        return BookRequestModel.newBuilder().setName(attraction)
-                .setDay(day)
-                .setTime(time)
-                .setId(visitorId)
+        return BookRequestModel.newBuilder().setName(queryModel.getAttraction())
+                .setDay(queryModel.getDay())
+                .setTime(queryModel.getTime())
+                .setId(queryModel.getVisitorId())
                 .build();
     }
 
