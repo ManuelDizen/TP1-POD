@@ -5,7 +5,6 @@ import ar.edu.itba.pod.grpc.models.Attraction;
 import ar.edu.itba.pod.grpc.models.AttractionPass;
 import ar.edu.itba.pod.grpc.models.Reservation;
 import ar.edu.itba.pod.grpc.models.ReservationStatus;
-import io.grpc.Status;
 
 
 import java.time.LocalDateTime;
@@ -59,14 +58,13 @@ public class ParkRepository {
     // las reservas en espera, y confirmarlas/cancelarlas/reubicarlas.
     public SlotsReplyModel addSlots(String name, int day, int capacity) throws RuntimeException{
         Attraction att = getAttractionByName(name);
-        if(att == null) //TODO esto no hay chance que esté bien sincronizado, lo hago por devolver un error mas prolijo
+        if(att == null)
             throw new RuntimeException("Attraction does not exist");
         try {
             att.initializeSlots(day, capacity);
         } catch (RuntimeException e) {
             throw e;
         }
-        //TODO: ver si ese chequeo en el if está bien en términos de sync
         return updateReservations(name, day);
     }
 
@@ -279,19 +277,27 @@ public class ParkRepository {
         for (Attraction attr : attractionList) {
             if (!attractionHasCapacityAlready(attr.getName(), day)) {
                 PRDay = reservations.get(attr.getName()).stream().filter(a -> a.getDay() == day && a.getStatus() == PENDING).toList();
-                for (Reservation reservation : PRDay) {
+                if(!PRDay.isEmpty()) {
                     Map<LocalTime, Long> acc = PRDay.stream().collect(
                             Collectors.groupingBy(Reservation::getSlot, Collectors.counting())
                     );
-                    LocalTime maxSlot = acc.entrySet().stream().max(Map.Entry.comparingByValue())
+                    LocalTime maxSlot = acc.entrySet().stream().sorted(Map.Entry.comparingByKey())
+                            .max(Map.Entry.comparingByValue())
                             .map(Map.Entry::getKey).orElse(null);
                     QueryCapacityModel capacityModel = QueryCapacityModel.newBuilder()
                             .setSlot(maxSlot.toString())
                             .setCapacity(acc.get(maxSlot).intValue())
-                            .setAttraction(reservation.getAttractionName())
+                            .setAttraction(attr.getName())
                             .build();
                     capacityList.add(capacityModel);
-                }
+                } else {
+                        QueryCapacityModel capacityModel = QueryCapacityModel.newBuilder()
+                                .setSlot(attr.getOpening().toString())
+                                .setCapacity(0)
+                                .setAttraction(attr.getName())
+                                .build();
+                        capacityList.add(capacityModel);
+                    }
             }
         }
         unlockRead(reservsLock);
@@ -300,36 +306,36 @@ public class ParkRepository {
             if(diff == 0)
                 diff = o1.getAttraction().compareTo(o2.getAttraction());
             return diff;
-        }); //TODO CAMBIAR POR ORDEN DE CONFIRMACIÓN
+        });
         return capacityList;
     }
 
     public List<QueryConfirmedModel> getConfirmedReservationsByDay(int day) {
         List<Attraction> attractionList = getAttractions();
-        List<Reservation> CRDay;
+        List<Reservation> CRDay = new ArrayList<>();
         List<QueryConfirmedModel> confirmedList = new ArrayList<>();
         lockRead(reservsLock);
         for (Attraction attr : attractionList) {
-            CRDay = reservations.get(attr.getName()).stream().filter(a -> a.getDay() == day && a.getStatus() == CONFIRMED).toList();
-            for (Reservation reservation : CRDay) {
-                QueryConfirmedModel capacityModel = QueryConfirmedModel.newBuilder()
-                        .setSlot(reservation.getSlot().toString())
-                        .setVisitor(reservation.getVisitorId().toString())
-                        .setAttraction(reservation.getAttractionName())
-                        .build();
-                confirmedList.add(capacityModel);
-            }
+            CRDay.addAll(reservations.get(attr.getName()).stream().filter(a -> a.getDay() == day && a.getStatus() == CONFIRMED).toList());
         }
-        unlockRead(reservsLock);
-        confirmedList.sort((o1, o2) -> {
-            int diff = o1.getAttraction().compareTo(o2.getAttraction());
+        CRDay.sort((r1, r2) -> {
+            int diff = r1.getConfirmedAt().compareTo(r2.getConfirmedAt());
             if(diff == 0) {
-                diff = LocalTime.parse(o1.getSlot()).compareTo(LocalTime.parse(o2.getSlot()));
-                if ((diff) == 0)
-                    diff = o1.getVisitor().compareTo(o2.getVisitor());
+                diff = r1.getAttractionName().compareTo(r2.getAttractionName());
+                if(diff == 0)
+                    diff = r1.getVisitorId().compareTo(r2.getVisitorId());
             }
             return diff;
         });
+        for (Reservation reservation : CRDay) {
+            QueryConfirmedModel capacityModel = QueryConfirmedModel.newBuilder()
+                    .setSlot(reservation.getSlot().toString())
+                    .setVisitor(reservation.getVisitorId().toString())
+                    .setAttraction(reservation.getAttractionName())
+                    .build();
+            confirmedList.add(capacityModel);
+        }
+        unlockRead(reservsLock);
         return confirmedList;
     }
 
@@ -387,7 +393,7 @@ public class ParkRepository {
                 List<LocalTime> orderedKeys = new ArrayList<>(keySet).stream()
                         .filter(a -> a.isAfter(r.getSlot())) // No testeo el == porque con vacants lo chequee
                         .toList();
-                for(LocalTime t : orderedKeys){ //TODO: Debería hacerlo pero corroborar que itere en orden
+                for(LocalTime t : orderedKeys){
                     if(pass.getType() == HALF_DAY && t.isAfter(LocalTime.of(14,0))) {
                         cancelReservation(r, pass);
                         break;

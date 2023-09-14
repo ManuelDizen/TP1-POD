@@ -14,13 +14,6 @@ public class ConnectionUtils {
                 .build();
     }
 
-    public static ManagedChannel createNewChannel(String serverAddress){
-        System.out.println("Host data desde createNewChannel: " + serverAddress + "\n");
-        return ManagedChannelBuilder.forTarget(serverAddress)
-                .usePlaintext()
-                .build();
-    }
-
     public static void shutdownChannel(ManagedChannel channel) throws InterruptedException {
         channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
     }

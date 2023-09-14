@@ -1,5 +1,6 @@
 package ar.edu.itba.pod.grpc.client;
 
+import ar.edu.itba.pod.grpc.client.queryModels.QueryParamsModel;
 import ar.edu.itba.pod.grpc.requests.*;
 import io.grpc.ManagedChannel;
 import org.slf4j.Logger;
@@ -11,10 +12,11 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.concurrent.TimeUnit;
+import static utils.ConnectionUtils.shutdownChannel;
 
 public class QueryClient {
     private static final Logger logger = LoggerFactory.getLogger(AdminClient.class);
@@ -22,9 +24,7 @@ public class QueryClient {
     public static void main(String[] args) throws InterruptedException {
         logger.info("QueryClient starting...");
 
-        String serverAddress = ParsingUtils.getSystemProperty(PropertyNames.SERVER_ADDRESS).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
-
-        ManagedChannel channel = ConnectionUtils.createNewChannel(serverAddress);
+        ManagedChannel channel = ConnectionUtils.createChannel();
 
         String action = null;
         try {
@@ -32,11 +32,19 @@ public class QueryClient {
         }
         catch(NoSuchElementException e){
             System.out.println("Action requested is invalid. Please check action is one of the following options:\n[capacity|confirmed]");
-            channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
+            shutdownChannel(channel);
             return;
         }
 
-        String outPath = ParsingUtils.getSystemProperty(PropertyNames.OUT_PATH).orElseThrow(() -> new RuntimeException("Error parsing parameter"));
+        QueryParamsModel params;
+        try{
+            params = new QueryParamsModel();
+        }
+        catch(InvalidParameterException e){
+            System.out.println("Invalid parameters. Please try again.");
+            shutdownChannel(channel);
+            return;
+        }
 
         QueryRequestsServiceGrpc.QueryRequestsServiceBlockingStub req =
                 QueryRequestsServiceGrpc.newBlockingStub(channel);
@@ -44,30 +52,36 @@ public class QueryClient {
         switch(action) {
             case "capacity":
                 logger.info("QueryClient capacity...");
-                int dayC = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow(() -> new RuntimeException("Error parsing parameter")));
-                QueryRequestModel modelC = QueryRequestModel.newBuilder().setDay(dayC).build();
+                QueryRequestModel modelC = QueryRequestModel.newBuilder().setDay(params.getDay()).build();
                 List<QueryCapacityModel> capacityList = new ArrayList<>();
                 try {
                     req.getCapacityRequest(modelC).forEachRemaining(capacityList::add);
-                    writeCapacityOutput(capacityList, outPath);
+                    if (!capacityList.isEmpty()) {
+                        writeCapacityOutput(capacityList, params.getOutPath());
+                    } else {
+                        System.out.println("There are no Attractions");
+                    }
                 } catch(RuntimeException e){
                     System.out.println("Error doing query: " + e.getMessage());
                 }
                 break;
             case "confirmed":
                 logger.info("QueryClient confirmed...");
-                int day = Integer.parseInt(ParsingUtils.getSystemProperty(PropertyNames.DAY).orElseThrow(() -> new RuntimeException("Error parsing parameter")));
-                QueryRequestModel model = QueryRequestModel.newBuilder().setDay(day).build();
+                QueryRequestModel model = QueryRequestModel.newBuilder().setDay(params.getDay()).build();
                 List<QueryConfirmedModel> confirmedList = new ArrayList<>();
                 try {
                     req.getConfirmedRequest(model).forEachRemaining(confirmedList::add);
-                    writeConfirmedOutput(confirmedList, outPath);
+                    if (!confirmedList.isEmpty()) {
+                        writeConfirmedOutput(confirmedList, params.getOutPath());
+                    } else {
+                        System.out.println("There are no confirmed reservations");
+                    }
                 } catch(RuntimeException e){
                     System.out.println("Error doing query: " + e.getMessage());
                 }
                 break;
         }
-        channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
+        shutdownChannel(channel);
     }
 
     private static void writeOnFile(StringBuilder output, String outPath) {

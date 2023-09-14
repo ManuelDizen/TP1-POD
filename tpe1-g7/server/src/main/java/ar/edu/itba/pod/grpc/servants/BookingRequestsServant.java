@@ -3,7 +3,6 @@ package ar.edu.itba.pod.grpc.servants;
 import ar.edu.itba.pod.grpc.models.Attraction;
 import ar.edu.itba.pod.grpc.persistance.ParkRepository;
 import ar.edu.itba.pod.grpc.models.Reservation;
-import ar.edu.itba.pod.grpc.models.ReservationStatus;
 import ar.edu.itba.pod.grpc.requests.*;
 import com.google.protobuf.Empty;
 import io.grpc.Status;
@@ -13,9 +12,6 @@ import org.slf4j.LoggerFactory;
 
 import java.time.LocalTime;
 import java.util.*;
-
-import static ar.edu.itba.pod.grpc.models.ReservationStatus.CONFIRMED;
-import static ar.edu.itba.pod.grpc.models.ReservationStatus.PENDING;
 
 public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRequestsServiceImplBase {
 
@@ -116,7 +112,7 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
         String attraction = request.getName();
         LocalTime slot = LocalTime.parse(request.getTime());
 
-        if(checkBookingParameters(attraction, day, slot, id, responseObserver)) //TODO!!!!
+        if(checkBookingParameters(attraction, day, slot, id, responseObserver))
             {
 
             try {
