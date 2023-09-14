@@ -69,9 +69,12 @@ public class ParkRepository {
         return updateReservations(name, day, capacity);
     }
 
-    public Attraction addRide(Attraction att){
+    public Attraction addRide(Attraction att) throws RuntimeException{
         lockWrite(attrLock);
+
+        if(!attractions.contains(att)) throw new RuntimeException("Attraction does not exist");
         attractions.add(att);
+
         unlockWrite(attrLock);
 
         lockWrite(reservsLock);
@@ -81,8 +84,13 @@ public class ParkRepository {
         return att;
     }
 
-    public boolean addPass(AttractionPass pass){
+    public boolean addPass(AttractionPass pass) throws RuntimeException{
         lockWrite(passLock);
+        if(passes.stream().anyMatch(a ->
+                a.getVisitor().equals(pass.getVisitor()) && a.getDay()==pass.getDay())){
+            throw new RuntimeException("Visitor " + pass.getVisitor() + " already has pass for day "
+                    + pass.getDay() + ".");
+        }
         passes.add(pass);
         unlockWrite(passLock);
         return true;

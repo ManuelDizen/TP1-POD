@@ -47,17 +47,16 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
         SlotsReplyModel reply = null;
         try {
             reply = repository.addSlots(name, day, capacity);
+            if(reply != null){
+                responseObserver.onNext(reply);
+                responseObserver.onCompleted();
+            }
+            else{
+                responseObserver.onError(Status.INTERNAL.withDescription("Unknown error").asRuntimeException());
+            } //TODO ver como optimizar esto internamente
         }
         catch(RuntimeException e){
             responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
-        }
-
-        if(reply != null){
-            responseObserver.onNext(reply);
-            responseObserver.onCompleted();
-        }
-        else{
-            responseObserver.onError(Status.INTERNAL.withDescription("Unknown error").asRuntimeException());
         }
     }
 
@@ -76,16 +75,13 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
         if(day < 1 || day > 365){
             returnOnError("Day is invalid.", responseObserver);
         }
-        if(repository.visitorHasPass(id, day)){
-            returnOnError("Visitor " + id + " already has pass for day " + day + ".", responseObserver);
-        }
-        boolean req = repository.addPass(new AttractionPass(id, type, day));
-        if(req){
+        try{
+            repository.addPass(new AttractionPass(id, type, day));
             responseObserver.onNext(Int32Value.of(ReturnValues.SUCCESSFUL_PETITION.ordinal()));
             responseObserver.onCompleted();
         }
-        else{
-            returnOnError("Unknown error.", responseObserver);
+        catch(RuntimeException e){
+            returnOnError(e.getMessage(), responseObserver);
         }
     }
 
@@ -97,9 +93,6 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
         LocalTime closing = LocalTime.parse(request.getClosing());
         int minsPerSlot = request.getMinsPerSlot();
 
-        if(repository.attractionExists(name)){
-            returnOnError("Attraction already exists.", responseObserver);
-        }
         if(opening.isAfter(closing)){
             returnOnError("Error with times.",responseObserver);
         }
@@ -107,13 +100,18 @@ public class AdminRequestsServant extends AdminRequestsServiceGrpc.AdminRequests
             returnOnError("Invalid minutes per slot.", responseObserver);
         }
 
-        Attraction att = repository.addRide(new Attraction(name, opening, closing, minsPerSlot));
-        if(att != null){
-            responseObserver.onNext(Int32Value.of(ReturnValues.SUCCESSFUL_PETITION.ordinal()));
-            responseObserver.onCompleted();
+        try{
+            Attraction att = repository.addRide(new Attraction(name, opening, closing, minsPerSlot));
+            if(att != null){
+                responseObserver.onNext(Int32Value.of(ReturnValues.SUCCESSFUL_PETITION.ordinal()));
+                responseObserver.onCompleted();
+            }
+            else{
+                returnOnError("Unknown error.", responseObserver);
+            }
         }
-        else{
-            returnOnError("Unknown error.", responseObserver);
+        catch(RuntimeException e){
+            returnOnError(e.getMessage(), responseObserver);
         }
     }
 
