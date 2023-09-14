@@ -1,8 +1,6 @@
 package ar.edu.itba.pod.grpc.models;
 
 
-import ar.edu.itba.pod.grpc.utils.LockUtils;
-
 import java.time.LocalTime;
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -176,7 +174,14 @@ public class Attraction {
         unlockWrite(spacesLock);
     }
 
+    public Map<LocalTime, Integer> lockWriteAndGetSpacesAvailableForDay(int day){
+        lockWrite(spacesLock);
+        return getSpaceAvailable().get(day);
+    }
 
+    public void freeLockWriteForSpacesAvailable(){
+        unlockWrite(spacesLock);
+    }
 
     public ReadWriteLock getSpacesLock() {
         return spacesLock;
