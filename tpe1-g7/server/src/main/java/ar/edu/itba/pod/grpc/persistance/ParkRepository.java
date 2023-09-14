@@ -159,17 +159,34 @@ public class ParkRepository {
 
     }
 
-    public ResStatus addReservation(Reservation reservation) {
+    public ResStatus addReservation(Reservation reservation) throws RuntimeException {
 
         ResStatus status;
 
         Attraction attraction = getAttractionByName(reservation.getAttractionName());
 
+        //TODO!!
+        //chequeo si tiene pase válido
         AttractionPass pass = getAttractionPass(reservation.getVisitorId(), reservation.getDay());
         if(!pass.rideConsumption()) {
             throw new RuntimeException("Invalid pass");
         }
 
+        if(attraction.hasCapacityAlready(reservation.getDay())) {
+            try {
+                attraction.addReservation(reservation);
+            } catch (RuntimeException e) {
+                throw e;
+            }
+            reservation.setStatus(CONFIRMED);
+            reservation.setReserved(true);
+            status = ResStatus.CONFIRMED;
+        } else {
+            reservation.setStatus(PENDING);
+            status = ResStatus.PENDING;
+        }
+
+        //necesito el lock para escribir en la clase reservations
         lockWrite(reservsLock);
 
         List<Reservation> reservs = reservations.get(reservation.getAttractionName());
@@ -183,17 +200,6 @@ public class ParkRepository {
         reservations.put(reservation.getAttractionName(), reservs);
 
         unlockWrite(reservsLock);
-
-        if(attraction.hasCapacityAlready(reservation.getDay())) {
-            reservation.setStatus(CONFIRMED);
-            reservation.setReserved(true);
-            status = ResStatus.CONFIRMED;
-        } else {
-            reservation.setStatus(PENDING);
-            status = ResStatus.PENDING;
-        }
-
-        attraction.addReservation(reservation);
 
         manageNotifications(reservation);
 

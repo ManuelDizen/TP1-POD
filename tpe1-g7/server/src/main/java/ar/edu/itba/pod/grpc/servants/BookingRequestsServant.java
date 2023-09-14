@@ -161,17 +161,18 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
     @Override
     public void bookingRequest(BookRequestModel request, StreamObserver<ReservationState> responseObserver) {
 
-        System.out.println("estoy en book");
-
         int day = request.getDay();
         UUID id = UUID.fromString(request.getId());
         String attraction = request.getName();
         LocalTime time = LocalTime.parse(request.getTime());
 
-        if(checkBookingParameters(attraction, day, time, id, responseObserver)) {
-            LocalTime slot = repository.getAttractionByName(attraction).getSlot(time);
-            System.out.println("vuelvo");
+        if(checkBookingParameters(attraction, day, time, id, responseObserver)) //TODO!!!!
+            {
+            LocalTime slot = repository.getAttractionByName(attraction).getSlot(time); //TODO!!!
+
             try {
+
+                //hago la reserva, obtengo el estado de la misma
                 ResStatus status = repository.addReservation(new Reservation(attraction, day, id, slot, null));
                 responseObserver.onNext(ReservationState.newBuilder().setStatus(status)
                         .setAttraction(attraction).setDay(day).setSlot(String.valueOf(slot)).build());
@@ -181,7 +182,6 @@ public class BookingRequestsServant extends BookingRequestsServiceGrpc.BookingRe
             }
 
         }
-        System.out.println("salgo");
     }
 
     @Override

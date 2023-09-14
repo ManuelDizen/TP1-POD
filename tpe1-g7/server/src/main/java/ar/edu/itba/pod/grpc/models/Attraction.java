@@ -99,18 +99,17 @@ public class Attraction {
         unlockWrite(capacitiesLock);
     }
 
-    public boolean addReservation(Reservation reservation) {
+    public void addReservation(Reservation reservation) throws RuntimeException{
         lockWrite(spacesLock);
         Map<LocalTime, Integer> slots = spaceAvailable.get(reservation.getDay());
         Integer capacity = slots.get(reservation.getSlot());
         if(capacity <= 0) {
             unlockWrite(spacesLock);
-            return false;
+            throw new RuntimeException("Slot is full");
         }
         capacity--;
         slots.put(reservation.getSlot(), capacity);
         unlockWrite(spacesLock);
-        return true;
     }
 
     public LocalTime getSlot(LocalTime slot) {
