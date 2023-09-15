@@ -108,14 +108,20 @@ public class BookingClient {
             try {
                 response = req.checkAvailabilityAllAttractions(AvailabilityRequestModel.newBuilder()
                         .setDay(day).addAllSlots(slots).build());
+                PrintingUtils.printAvailability(response.getAvailabilityList());
             } catch (RuntimeException e) {
                 System.out.println("Error - " + e.getMessage());
             }
         } else {
-            response = req.checkAvailability(AvailabilityRequestModel.newBuilder()
-                    .setAttraction(attraction.get()).setDay(day).addAllSlots(slots).build());
+            try {
+                response = req.checkAvailability(AvailabilityRequestModel.newBuilder()
+                        .setAttraction(attraction.get()).setDay(day).addAllSlots(slots).build());
+                PrintingUtils.printAvailability(response.getAvailabilityList());
+            } catch (RuntimeException e) {
+                System.out.println("Error - " + e.getMessage());
+            }
         }
-        PrintingUtils.printAvailability(response.getAvailabilityList());
+
 
     }
 
