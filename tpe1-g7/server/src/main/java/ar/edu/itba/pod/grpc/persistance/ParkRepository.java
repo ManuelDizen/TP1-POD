@@ -287,6 +287,7 @@ public class ParkRepository {
             }
             reservation.setStatus(CONFIRMED);
             reservation.setReserved(true);
+            reservation.setConfirmedAt(LocalDateTime.now());
             status = ResStatus.CONFIRMED;
         } else {
             reservation.setStatus(PENDING);
